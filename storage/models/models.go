@@ -8,7 +8,7 @@ type User struct {
 	Password    string    `json:"password" gorm:"not null"`
 	Name        string    `json:"name"`
 	AvatarURL   string    `json:"avatar_url"`
-	DateOfBirth time.Time `json:"date_of_birth"`
+	DateOfBirth time.Time `json:"date_of_birth" gorm:"default:NULL"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	Bio         string    `json:"bio"`
