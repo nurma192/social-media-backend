@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"golang.org/x/exp/slog"
+	"net/http"
 	"os"
 	"social_media_backend/controllers"
 	"social_media_backend/http-server/login"
 	"social_media_backend/http-server/register"
+	"social_media_backend/internal/middleware"
 	"social_media_backend/lib/logger/slogpretty"
 	"social_media_backend/storage/postgresql"
 )
@@ -17,6 +20,12 @@ import (
 func main() {
 	// todo init log
 	log := setupLogger()
+
+	//todo init env
+	err := godotenv.Load()
+	if err != nil {
+		log.Error("Error loading .env file")
+	}
 
 	// todo init DB
 	storage, err := postgresql.NewStorage()
@@ -45,6 +54,15 @@ func main() {
 		authGroup.GET("/current", controllers.Current)
 		authGroup.GET("/users/:id", controllers.GetUserById)
 		authGroup.PUT("/users/:id", controllers.UpdateUser)
+
+		authGroup.GET("/validate", middleware.RequireAuth(log, storage), func(c *gin.Context) {
+			user, _ := c.Get("user")
+
+			c.IndentedJSON(http.StatusOK, gin.H{
+				"message": "I'm logged in",
+				"user":    user,
+			})
+		})
 	}
 
 	router.Run(":8092")
