@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"social_media_backend/lib/hash"
+	"social_media_backend/storage/models"
 	"social_media_backend/storage/postgresql"
 	"time"
 )
@@ -25,8 +26,6 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		fmt.Println(userLogin.Email)
-		fmt.Println(userLogin.Password)
 
 		if userLogin.Email == "" || userLogin.Password == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "email or password is empty"})
@@ -40,7 +39,7 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 			return
 		}
 
-		user, err := storage.GetUserByEmail(userLogin.Email)
+		user, err := storage.GetUserBy(models.User{Email: userLogin.Email})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
