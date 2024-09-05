@@ -43,6 +43,7 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			log.Error("Error hashing password")
+			return
 		}
 
 		icon := jdenticon.New(user.Name)
@@ -55,6 +56,8 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 		avatarName := fmt.Sprintf("%s_%s.svg", user.Name, time.Now().Format("2006_01_02_15_04_05"))
 		avatarPath := "uploads/" + avatarName
 		file, err := os.Create(avatarPath)
+		user.AvatarURL = avatarPath
+
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			log.Error("Error creating avatar")
@@ -69,12 +72,12 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 			log.Error("Error creating avatar")
 			return
 		}
-		user.AvatarURL = avatarPath
 
 		err = storage.DB.Create(&user).Error
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			log.Error("Error when creating user")
+			return
 		}
 
 		c.IndentedJSON(http.StatusCreated, gin.H{"user": user})
