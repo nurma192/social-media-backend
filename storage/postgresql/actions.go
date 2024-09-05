@@ -12,11 +12,11 @@ func (s *Storage) IsExistByEmail(email string) bool {
 	return err == nil && userFromDB.Email == email
 }
 
-func (s *Storage) GetUserByEmail(email string) (models.User, error) {
+func (s *Storage) GetUserBy(userDetails models.User) (models.User, error) {
 	var userFromDB models.User
-	err := s.DB.First(&userFromDB, models.User{Email: email}).Error
+	err := s.DB.First(&userFromDB, userDetails).Error
 	if err != nil {
-		return models.User{}, errors.New("User not found")
+		return models.User{}, errors.New("user not found")
 	}
 	return userFromDB, nil
 }
