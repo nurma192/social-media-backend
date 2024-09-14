@@ -7,9 +7,13 @@ import (
 
 func (s *Storage) IsExistByEmail(email string) bool {
 	var userFromDB models.User
-	err := s.DB.First(&userFromDB, models.User{Email: email}).Error
+	s.DB.Limit(1).Find(&userFromDB, "email = ?", email)
 
-	return err == nil && userFromDB.Email == email
+	if userFromDB.Email == email {
+		return true
+	}
+
+	return false
 }
 
 func (s *Storage) GetUserBy(userDetails models.User) (models.User, error) {
