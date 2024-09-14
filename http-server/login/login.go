@@ -52,7 +52,6 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 		}
 
 		// Jwt token
-
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"sub": user.ID,
 			"exp": time.Now().Add(time.Hour * 24).Unix(),
@@ -70,6 +69,8 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 
 		c.SetSameSite(http.SameSiteLaxMode)
 		c.SetCookie("Authorization", tokenString, 3600*24, "", "", false, true)
-		c.IndentedJSON(http.StatusOK, gin.H{})
+		c.IndentedJSON(http.StatusOK, gin.H{
+			"message": "Login successful",
+		})
 	}
 }

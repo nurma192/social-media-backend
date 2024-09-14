@@ -7,9 +7,9 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"golang.org/x/exp/slog"
-	"net/http"
 	"os"
 	"social_media_backend/controllers"
+	"social_media_backend/http-server/getUserByID"
 	"social_media_backend/http-server/login"
 	"social_media_backend/http-server/register"
 	"social_media_backend/internal/middleware"
@@ -51,18 +51,10 @@ func main() {
 	{
 		authGroup.POST("/register", register.New(log, storage))
 		authGroup.POST("/login", login.New(log, storage))
-		authGroup.GET("/current", controllers.Current)
-		authGroup.GET("/users/:id", controllers.GetUserById)
-		authGroup.PUT("/users/:id", controllers.UpdateUser)
+		authGroup.GET("/current", middleware.RequireAuth(log, storage), controllers.Current)
+		authGroup.GET("/users/:id", middleware.RequireAuth(log, storage), getUserByID.New(log, storage))
+		authGroup.PUT("/users/:id", middleware.RequireAuth(log, storage), controllers.UpdateUser)
 
-		authGroup.GET("/validate", middleware.RequireAuth(log, storage), func(c *gin.Context) {
-			user, _ := c.Get("user")
-
-			c.IndentedJSON(http.StatusOK, gin.H{
-				"message": "I'm logged in",
-				"user":    user,
-			})
-		})
 	}
 
 	router.Run(":8092")
