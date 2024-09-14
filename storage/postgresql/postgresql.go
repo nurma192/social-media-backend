@@ -2,7 +2,8 @@ package postgresql
 
 import (
 	"fmt"
-	"github.com/jinzhu/gorm"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"social_media_backend/storage/models"
 )
 
@@ -14,13 +15,22 @@ type Storage struct {
 
 func NewStorage() (*Storage, error) {
 	const op = "storage.postgres.New"
-	db, err := gorm.Open("postgres", "user=user password=pass dbname=sm port=54321 sslmode=disable")
+	dsn := "host=localhost user=postgres password=uk888888 dbname=sm port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	db.AutoMigrate(&models.Comment{}, &models.Like{}, &models.Post{}, &models.Follow{}, &models.User{})
+	err = db.AutoMigrate(
+		&models.User{},
+		&models.Like{},
+		&models.Post{},
+		&models.Comment{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
 	storage := &Storage{
 		DB: db,
