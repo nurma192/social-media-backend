@@ -53,6 +53,7 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 			hashedPass, err := hash.HashPassword(updatedUser.Password)
 			if err != nil {
 				c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+				log.Error("Error when try to hash the password")
 				return
 			}
 			updatedUser.Password = hashedPass
@@ -79,6 +80,7 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 
 		if err := storage.DB.Updates(&finallyUser).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Error("Error when try to update the user!")
 			return
 		}
 		c.IndentedJSON(http.StatusOK, gin.H{

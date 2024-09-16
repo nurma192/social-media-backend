@@ -24,3 +24,18 @@ func (s *Storage) GetUserBy(userDetails models.User) (models.User, error) {
 	}
 	return userFromDB, nil
 }
+
+func (s *Storage) IsThisUserFollowedTo(userID, checkUserID uint) bool {
+	var user models.User
+	err := s.DB.Preload("Followings").First(&user, models.User{ID: userID}).Error
+	if err != nil {
+		return false
+	}
+
+	for _, user := range user.Followings {
+		if user.ID == checkUserID {
+			return true
+		}
+	}
+	return false
+}
