@@ -71,6 +71,7 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 		c.SetCookie("Authorization", tokenString, 3600*24, "", "", false, true)
 		c.IndentedJSON(http.StatusOK, gin.H{
 			"message": "Login successful",
+			"user":    user,
 		})
 	}
 }
