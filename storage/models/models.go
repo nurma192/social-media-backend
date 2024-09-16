@@ -21,8 +21,8 @@ type User struct {
 	Likes       []Like    `json:"likes"      `
 	Posts       []Post    `json:"posts"      `
 	Comments    []Comment `json:"comments"   `
-	Followers   []User    `json:"followers"  gorm:"many2many:followers"`
-	Followings  []User    `json:"followings" gorm:"many2many:followings"`
+	Followers   []User    `json:"followers"  gorm:"many2many:follows"`
+	Followings  []User    `json:"followings" gorm:"many2many:follows;joinForeignKey:follower_id"`
 }
 
 type Like struct {
@@ -52,4 +52,8 @@ type Post struct {
 	UserID    uint           `json:"authorID" gorm:"not null"`
 	Likes     []Like         `json:"likes"`
 	Comments  []Comment      `json:"comments"`
+}
+type Follows struct {
+	userID     uint
+	followerID uint
 }
