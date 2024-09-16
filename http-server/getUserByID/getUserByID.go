@@ -10,24 +10,38 @@ import (
 
 func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
+		object, _ := c.Get("user")
 
-		var user *models.User
-		err := storage.DB.First(&user, id).Error
+		currentUser, ok := object.(models.User)
+		if !ok {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+
+		paramID := c.Param("id")
+		var userFromParam *models.User
+		err := storage.DB.
+			//Preload("Followings").
+			//Preload("Followers").
+			First(&userFromParam, paramID).Error
 		if err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"message": err.Error()})
 			return
 		}
 
-		if user == nil {
+		if userFromParam == nil {
 			c.JSON(http.StatusNotFound, gin.H{
 				"message": "User not found",
 			})
 			return
 		}
 
+		isIFollowedToHim := storage.IsThisUserFollowedTo(currentUser.ID, userFromParam.ID)
+		isHeFollowedToMe := storage.IsThisUserFollowedTo(userFromParam.ID, currentUser.ID)
+
 		c.IndentedJSON(http.StatusOK, gin.H{
-			"user": user,
+			"user":             userFromParam,
+			"isIFollowedToHim": isIFollowedToHim,
+			"isHeFollowedToMe": isHeFollowedToMe,
 		})
 
 	}
