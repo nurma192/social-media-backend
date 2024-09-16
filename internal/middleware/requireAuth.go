@@ -14,52 +14,50 @@ import (
 
 func RequireAuth(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get cookie of rec
+		// todo: Get cookie of rec
 		tokenString, err := c.Cookie("Authorization")
 		if err != nil {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
 			return
 		}
 
-		// Decode/validate it
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 
-			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 			return []byte(os.Getenv("SECRET")), nil
 		})
 		if err != nil {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
 			return
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			// check the exp
 			if float64(time.Now().Unix()) > claims["exp"].(float64) {
-				c.AbortWithStatus(http.StatusUnauthorized)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
 				return
 			}
 
 			id, ok := claims["sub"].(float64)
 			if !ok {
-				c.AbortWithStatus(http.StatusInternalServerError)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
+				log.Error("Error while extracting id from token")
 				return
 			}
 
 			user, err := storage.GetUserBy(models.User{ID: uint(id)})
 			if err != nil || user.ID == 0 {
-				c.AbortWithStatus(http.StatusUnauthorized)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
 				return
 			}
 			// Attach the req
 			c.Set("user", user)
 
-			// Continue
 			c.Next()
 		} else {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
 			return
 		}
 
