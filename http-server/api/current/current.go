@@ -20,6 +20,7 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 		err := storage.DB.
 			Preload("Followers").
 			Preload("Followings").
+			Preload("Posts").
 			First(&currentUser).Error
 
 		if err != nil {
