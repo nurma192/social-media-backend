@@ -18,7 +18,7 @@ func (s *Storage) IsExistByEmail(email string) bool {
 
 func (s *Storage) GetUserBy(userDetails models.User) (models.User, error) {
 	var userFromDB models.User
-	err := s.DB.First(&userFromDB, userDetails).Error
+	err := s.DB.Limit(1).Find(&userFromDB, userDetails).Error
 	if err != nil {
 		return models.User{}, errors.New("user not found")
 	}
@@ -38,4 +38,13 @@ func (s *Storage) IsThisUserFollowedTo(userID, checkUserID uint) bool {
 		}
 	}
 	return false
+}
+
+func (s *Storage) GetPostByID(id uint) (*models.Post, error) {
+	var post models.Post
+	err := s.DB.First(&post, models.Post{ID: id}).Error
+	if err != nil {
+		return nil, errors.New("post not found")
+	}
+	return &post, nil
 }
