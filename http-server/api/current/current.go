@@ -14,7 +14,9 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 
 		currentUser, ok := object.(models.User)
 		if !ok {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "User not found in request context"})
+			log.Error("User not found in request context")
+			return
 		}
 
 		err := storage.DB.
@@ -25,6 +27,7 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 
 		if err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
 		}
 
 		c.IndentedJSON(http.StatusOK, currentUser)
