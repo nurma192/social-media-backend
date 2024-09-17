@@ -4,10 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slog"
 	"net/http"
+	"social_media_backend/lib/actions"
 	"social_media_backend/lib/hash"
 	"social_media_backend/storage/models"
 	"social_media_backend/storage/postgresql"
-	"strconv"
 )
 
 func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
@@ -16,16 +16,18 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 
 		currentUser, ok := object.(models.User)
 		if !ok {
-			c.AbortWithStatus(http.StatusUnauthorized)
-		}
-
-		paramID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-		if err != nil {
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "User not found in request context"})
+			log.Error("User not found in request context")
 			return
 		}
 
-		if currentUser.ID != uint(paramID) {
+		paramID, ok := actions.ParseToUint(c.Param("id"))
+		if ok == false {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Invalid id"})
+			return
+		}
+
+		if currentUser.ID != paramID {
 			c.IndentedJSON(http.StatusNotFound, gin.H{
 				"message": "you dont have permission to update",
 			})
