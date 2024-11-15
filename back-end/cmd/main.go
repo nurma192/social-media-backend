@@ -14,9 +14,9 @@ import (
 	postController "social_media_backend/http-server/PostController"
 	"social_media_backend/http-server/api/current"
 	"social_media_backend/http-server/api/getUserByID"
-	"social_media_backend/http-server/api/login"
-	"social_media_backend/http-server/api/register"
 	"social_media_backend/http-server/api/update"
+	"social_media_backend/http-server/auth/login"
+	"social_media_backend/http-server/auth/register"
 	"social_media_backend/internal/middleware"
 	"social_media_backend/lib/logger/slogpretty"
 	"social_media_backend/storage/postgresql"
@@ -49,6 +49,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.Default()
+	router.Use(middleware.CORSMiddleware())
 	router.Use(requestid.New())
 
 	authGroup := router.Group("/auth")
@@ -89,7 +90,8 @@ func main() {
 	router.POST("/follow", middleware.RequireAuth(log, storage), followController.FollowUser(log, storage))
 	router.DELETE("/unfollow/:id", middleware.RequireAuth(log, storage), followController.UnFollowUser(log, storage))
 
-	router.Run(":8092")
+	router.Run(":8080")
+
 }
 
 func setupLogger() *slog.Logger {

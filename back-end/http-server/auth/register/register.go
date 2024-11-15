@@ -54,7 +54,7 @@ func New(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 			return
 		}
 		avatarName := fmt.Sprintf("%s_%s.svg", user.Name, time.Now().Format("2006_01_02_15_04_05"))
-		avatarPath := "back-end/uploads/" + avatarName
+		avatarPath := "uploads/" + avatarName
 		file, err := os.Create(avatarPath)
 		user.AvatarURL = avatarPath
 

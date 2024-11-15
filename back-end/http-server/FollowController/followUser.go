@@ -33,6 +33,7 @@ func FollowUser(log *slog.Logger, storage *postgresql.Storage) gin.HandlerFunc {
 
 		if currentUser.ID == followReqStruct.FollowingID {
 			c.IndentedJSON(http.StatusConflict, gin.H{"error": "You can't follow yourself"})
+			return
 		}
 
 		var count int64
