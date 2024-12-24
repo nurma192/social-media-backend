@@ -31,6 +31,8 @@ func main() {
 	if err != nil {
 		log.Error("Error loading .env file")
 	}
+	log.Info(os.Getenv("SECRET"))
+	log.Info("Hello world")
 
 	// todo init DB
 	storage, err := postgresql.NewStorage()
