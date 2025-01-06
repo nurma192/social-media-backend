@@ -1,0 +1,2 @@
+driver: postgres
+open: "host=localhost port=5432 user=postgres password=uk888888 dbname=social_media sslmode=disable"
