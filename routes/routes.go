@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"social-media-back/controllers"
+	"social-media-back/controllers/auth_controller"
 )
 
 func SetupRoutes() *gin.Engine {
@@ -10,8 +10,8 @@ func SetupRoutes() *gin.Engine {
 
 	authGroup := router.Group("/auth")
 	{
-		authGroup.POST("/login", controllers.Login)
-		authGroup.POST("/register", controllers.Register)
+		authGroup.POST("/login", auth_controller.Login)
+		authGroup.POST("/register", auth_controller.Register)
 	}
 
 	return router
