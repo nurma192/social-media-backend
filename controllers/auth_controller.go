@@ -15,7 +15,7 @@ func (c *AppController) Register(ctx *gin.Context) {
 	var req request.RegisterRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, response.ErrorResponse{
+		ctx.JSON(http.StatusBadRequest, response.DefaultErrorResponse{
 			Detail:  err.Error(),
 			Message: "Invalid request body",
 		})
@@ -24,7 +24,7 @@ func (c *AppController) Register(ctx *gin.Context) {
 
 	message, user, status, err := c.AppService.Register(req)
 	if err != nil {
-		ctx.JSON(status, response.ErrorResponse{
+		ctx.JSON(status, response.DefaultErrorResponse{
 			Message: message,
 			Detail:  err.Error(),
 		})
@@ -43,7 +43,7 @@ func (c *AppController) SendVerifyCode(ctx *gin.Context) {
 	var req request.SendVerifyCodeRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, response.ErrorResponse{
+		ctx.JSON(http.StatusBadRequest, response.DefaultErrorResponse{
 			Detail:  err.Error(),
 			Message: "Invalid request body",
 		})
@@ -52,7 +52,7 @@ func (c *AppController) SendVerifyCode(ctx *gin.Context) {
 
 	message, code, err := c.AppService.SendVerifyCode(req.Email)
 	if err != nil {
-		ctx.JSON(code, response.ErrorResponse{
+		ctx.JSON(code, response.DefaultErrorResponse{
 			Message: message,
 			Detail:  err.Error(),
 		})
@@ -66,5 +66,26 @@ func (c *AppController) SendVerifyCode(ctx *gin.Context) {
 }
 
 func (c *AppController) VerifyAccount(ctx *gin.Context) {
+	var req request.VerifyAccountRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, response.DefaultErrorResponse{
+			Detail:  err.Error(),
+			Message: "Invalid request body",
+		})
+		return
+	}
 
+	message, code, err := c.AppService.VerifyAccount(req.Email, req.Code)
+	if err != nil {
+		ctx.JSON(code, response.DefaultErrorResponse{
+			Message: message,
+			Detail:  err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(code, response.DefaultSuccessResponse{
+		Success: true,
+		Message: message,
+	})
 }

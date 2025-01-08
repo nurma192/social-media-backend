@@ -1,18 +1,24 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"github.com/go-redis/redis/v8"
 	"social-media-back/models"
 )
 
 type AppService struct {
-	DB *sql.DB
+	DB          *sql.DB
+	RedisClient *redis.Client
+	RedisCtx    context.Context
 }
 
-func NewAppService(db *sql.DB) *AppService {
+func NewAppService(db *sql.DB, redisClient *redis.Client) *AppService {
 	return &AppService{
-		DB: db,
+		DB:          db,
+		RedisClient: redisClient,
+		RedisCtx:    context.Background(),
 	}
 }
 func (s *AppService) isUserExistByEmail(email string) (bool, error) {

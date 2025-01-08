@@ -3,27 +3,32 @@ package main
 import (
 	"social-media-back/config"
 	"social-media-back/internal/logger"
+	"social-media-back/internal/redis"
 	"social-media-back/internal/storage"
 	"social-media-back/routes"
 )
 
 func main() {
+	// setup logger
 	log := logger.NewLogger()
 
+	// load config
 	cfg := config.LoadConfig()
-
 	log.Info("Config: ", "connection", cfg)
 
+	// connect to Postgres
 	db, err := storage.ConnectDB(cfg)
 	if err != nil {
 		log.Error("Error when try to connect to database", "Error", err)
 		return
 	}
-
 	defer db.Close()
 
-	router := routes.SetupRoutes(db)
+	// connect to Redis
+	redisClient := redis.CreateClient()
 
+	// setup router
+	router := routes.SetupRoutes(db, redisClient)
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		log.Error("Error when starting the server", "Error", err)
 		return

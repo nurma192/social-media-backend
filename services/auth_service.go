@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/stdatiks/jdenticon-go"
+	"golang.org/x/exp/rand"
 	"net/http"
 	"os"
 	"social-media-back/lib/hash"
@@ -23,7 +24,7 @@ func (s *AppService) Register(request request.RegisterRequest) (string, *models.
 	var existingUserId int
 	err := s.DB.QueryRow("SELECT id FROM users where email = $1", request.Email).Scan(&existingUserId)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return "Server Error", nil, http.StatusInternalServerError, fmt.Errorf("Failed to check existing user: %w", err)
+		return "Server Error", nil, http.StatusInternalServerError, fmt.Errorf("failed to check existing user: %w", err)
 	}
 
 	if err == nil {
@@ -32,20 +33,20 @@ func (s *AppService) Register(request request.RegisterRequest) (string, *models.
 
 	hashedPassword, err := hash.HashPassword(request.Password)
 	if err != nil {
-		return "Server Error", nil, http.StatusInternalServerError, fmt.Errorf("Failed tohash the password: %w", err)
+		return "Server Error", nil, http.StatusInternalServerError, fmt.Errorf("failed tohash the password: %w", err)
 	}
 
 	icon := jdenticon.New(request.Firstname)
 	svg, err := icon.SVG()
 	if err != nil {
-		return "Server Error", nil, http.StatusInternalServerError, fmt.Errorf("Failed to generate icon: %w", err)
+		return "Server Error", nil, http.StatusInternalServerError, fmt.Errorf("failed to generate icon: %w", err)
 	}
 	avatarName := fmt.Sprintf("%s_%s.svg", request.Firstname, time.Now().Format("2006_01_02_15_04_05"))
 	avatarPath := "uploads/avatars/" + avatarName
 	file, err := os.Create(avatarPath)
 
 	if err != nil {
-		return "Server Error", nil, http.StatusInternalServerError, fmt.Errorf("Failed to create avatar: %w", err)
+		return "Server Error", nil, http.StatusInternalServerError, fmt.Errorf("failed to create avatar: %w", err)
 	}
 	defer file.Close()
 
@@ -96,11 +97,46 @@ func (s *AppService) SendVerifyCode(email string) (string, int, error) {
 		return "User already verified", http.StatusForbidden, errors.New("User already verified")
 	}
 
-	//todo Send code logic
+	//todo Save code logic
+	codeExist, err := s.checkVerificationCode(email)
+	if err != nil {
+		return "Server error", http.StatusInternalServerError, err
+	}
+	if codeExist {
+		return "Code already sent to your email", http.StatusForbidden, errors.New("forbidden, You can send code again after 2 minutes")
+	}
 
-	return "Verify code successfully sent to your email", http.StatusOK, nil
+	rand.Seed(uint64(time.Now().UnixNano()))
+	code := fmt.Sprintf("%04d", rand.Intn(10000))
+	err = s.setVerificationCode(email, code)
+	if err != nil {
+		return "Server error, when try to save verification code to redis", http.StatusInternalServerError, err
+	}
+	//todo Send code to email logic
+
+	return "Verify code successfully sent to your email: " + code, http.StatusOK, nil
 }
 
-func (s *AppService) VerifyAccount(email, code string) string {
-	return fmt.Sprintf("Verify email %s with code %s", email, code)
+func (s *AppService) VerifyAccount(email, code string) (string, int, error) {
+	storedCode, err := s.getVerificationCode(email)
+	if err != nil {
+		return "Error when try to get verification code from redis", http.StatusInternalServerError, err
+	}
+
+	if storedCode != code {
+		fmt.Println("codes:", storedCode, code)
+		return "Wrong verification code", http.StatusForbidden, errors.New("wrong verification code")
+	}
+
+	_, err = s.DB.Exec("UPDATE users SET verified = true WHERE email = $1", email)
+	if err != nil {
+		return "Server Error, when try to update verification of account", http.StatusInternalServerError, err
+	}
+
+	err = s.deleteVerificationCode(email)
+	if err != nil {
+		return "Server error while deleting verification code", http.StatusInternalServerError, err
+	}
+
+	return "Account verified successfully", http.StatusOK, nil
 }

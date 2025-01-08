@@ -8,8 +8,12 @@ type RegisterSuccessResponse struct {
 	Success bool         `json:"success" `
 }
 
-type RegisterErrorResponse struct {
+type SendVerifyCodeResponse struct {
+	Success bool   `json:"success"`
 	Message string `json:"message"`
-	Detail  string `json:"detail"`
-	Success bool   `json:"success" `
+}
+
+type VerifyAccountResponse struct {
+	Message string `json:"message"`
+	Success bool   `json:"success"`
 }
