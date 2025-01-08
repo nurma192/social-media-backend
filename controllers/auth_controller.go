@@ -22,21 +22,13 @@ func (c *AppController) Register(ctx *gin.Context) {
 		return
 	}
 
-	message, user, status, err := c.AppService.Register(req)
-	if err != nil {
-		ctx.JSON(status, response.DefaultErrorResponse{
-			Message: message,
-			Detail:  err.Error(),
-		})
+	res, status, errRes := c.AppService.Register(req)
+	if errRes != nil {
+		ctx.JSON(status, errRes)
 		return
 	}
 
-	ctx.JSON(http.StatusBadRequest, response.RegisterSuccessResponse{
-		User:    user,
-		Success: true,
-		Message: message,
-	})
-
+	ctx.JSON(http.StatusCreated, res)
 }
 
 func (c *AppController) SendVerifyCode(ctx *gin.Context) {
@@ -50,19 +42,13 @@ func (c *AppController) SendVerifyCode(ctx *gin.Context) {
 		return
 	}
 
-	message, code, err := c.AppService.SendVerifyCode(req.Email)
-	if err != nil {
-		ctx.JSON(code, response.DefaultErrorResponse{
-			Message: message,
-			Detail:  err.Error(),
-		})
+	res, code, errRes := c.AppService.SendVerifyCode(req.Email)
+	if errRes != nil {
+		ctx.JSON(code, errRes)
 		return
 	}
 
-	ctx.JSON(code, response.SendVerifyCodeResponse{
-		Success: true,
-		Message: message,
-	})
+	ctx.JSON(code, res)
 }
 
 func (c *AppController) VerifyAccount(ctx *gin.Context) {
@@ -75,17 +61,11 @@ func (c *AppController) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	message, code, err := c.AppService.VerifyAccount(req.Email, req.Code)
-	if err != nil {
-		ctx.JSON(code, response.DefaultErrorResponse{
-			Message: message,
-			Detail:  err.Error(),
-		})
+	res, code, errRes := c.AppService.VerifyAccount(req.Email, req.Code)
+	if errRes != nil {
+		ctx.JSON(code, errRes)
 		return
 	}
 
-	ctx.JSON(code, response.DefaultSuccessResponse{
-		Success: true,
-		Message: message,
-	})
+	ctx.JSON(code, res)
 }
