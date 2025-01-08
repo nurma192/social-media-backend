@@ -9,6 +9,7 @@ type User struct {
 	Email       string     `json:"email"`
 	Firstname   string     `json:"firstname"`
 	Lastname    string     `json:"lastname"`
+	Password    string     `json:"password"`
 	AvatarURL   *string    `json:"avatar_url"`
 	DateOfBirth *time.Time `json:"date_of_birth"`
 	Bio         *string    `json:"bio"`

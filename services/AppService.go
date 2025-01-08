@@ -1,24 +1,25 @@
 package services
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"github.com/go-redis/redis/v8"
+	"social-media-back/internal/auth"
+	"social-media-back/internal/redisStorage"
 	"social-media-back/models"
 )
 
 type AppService struct {
-	DB          *sql.DB
-	RedisClient *redis.Client
-	RedisCtx    context.Context
+	DB           *sql.DB
+	JWTService   *auth.JWTService
+	RedisService *redisStorage.RedisService
 }
 
-func NewAppService(db *sql.DB, redisClient *redis.Client) *AppService {
+func NewAppService(db *sql.DB, redisClient *redis.Client, jwtService *auth.JWTService, redisService *redisStorage.RedisService) *AppService {
 	return &AppService{
-		DB:          db,
-		RedisClient: redisClient,
-		RedisCtx:    context.Background(),
+		DB:           db,
+		JWTService:   jwtService,
+		RedisService: redisService,
 	}
 }
 func (s *AppService) isUserExistByEmail(email string) (bool, error) {
@@ -40,10 +41,10 @@ func (s *AppService) isUserExistByEmail(email string) (bool, error) {
 func (s *AppService) getUserByEmail(email string) (*models.User, error) {
 	user := &models.User{}
 	err := s.DB.QueryRow(
-		"SELECT id, email, firstname, lastname, avatar_url, date_of_birth, bio, verified, location, created_at FROM users WHERE email = $1",
+		"SELECT id, email, firstname, lastname, password, avatar_url, date_of_birth, bio, verified, location, created_at FROM users WHERE email = $1",
 		email,
 	).Scan(
-		&user.ID, &user.Email, &user.Firstname, &user.Lastname, &user.AvatarURL,
+		&user.ID, &user.Email, &user.Firstname, &user.Lastname, &user.Password, &user.AvatarURL,
 		&user.DateOfBirth, &user.Bio, &user.Verified, &user.Location, &user.CreatedAt,
 	)
 

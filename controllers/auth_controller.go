@@ -8,7 +8,22 @@ import (
 )
 
 func (c *AppController) Login(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, gin.H{"message": c.AppService.Login("User", "password")})
+	var req request.LoginRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, response.DefaultErrorResponse{
+			Message: "Bad request",
+			Detail:  err.Error(),
+		})
+		return
+	}
+
+	res, code, errRes := c.AppService.Login(req.Email, req.Password)
+	if errRes != nil {
+		ctx.JSON(code, errRes)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, res)
 }
 
 func (c *AppController) Register(ctx *gin.Context) {

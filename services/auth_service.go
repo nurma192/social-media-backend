@@ -8,18 +8,40 @@ import (
 	"golang.org/x/exp/rand"
 	"net/http"
 	"os"
-	"social-media-back/lib/hash"
+	"social-media-back/lib/hashing"
 	"social-media-back/models"
 	"social-media-back/models/request"
 	"social-media-back/models/response"
 	"time"
 )
 
-//message, code, loginResponse, err
-// (string, int, *response.LoginResponse, error
+func (s *AppService) Login(email, password string) (*response.LoginResponse, int, *response.DefaultErrorResponse) {
+	user, err := s.getUserByEmail(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  err.Error(),
+		}
+	}
 
-func (s *AppService) Login(username, password string) string {
-	return "Hello login"
+	if user == nil {
+		return nil, http.StatusUnauthorized, &response.DefaultErrorResponse{
+			Message: "Incorrect Email or Password",
+		}
+	}
+
+	if !hashing.CheckPassword(user.Password, password) {
+		return nil, http.StatusUnauthorized, &response.DefaultErrorResponse{
+			Message: "Incorrect Email or Password",
+		}
+	}
+
+	res := &response.LoginResponse{
+		RefreshToken: "",
+		Token:        "",
+		Success:      true,
+	}
+	return res, http.StatusOK, nil
 }
 
 func (s *AppService) Register(request request.RegisterRequest) (*response.RegisterResponse, int, *response.DefaultErrorResponse) {
@@ -39,11 +61,11 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 		}
 	}
 
-	hashedPassword, err := hash.HashPassword(request.Password)
+	hashedPassword, err := hashing.HashPassword(request.Password)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
 			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to hash password: %w", err.Error()),
+			Detail:  fmt.Sprintf("failed to hashing password: %w", err.Error()),
 		}
 	}
 
@@ -113,8 +135,7 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 	return res, http.StatusCreated, nil
 }
 
-// will return message, statusCode, err
-func (s *AppService) SendVerifyCode(email string) (*response.SendVerifyCodeResponse, int, *response.DefaultErrorResponse) {
+func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
 	user, err := s.getUserByEmail(email)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
@@ -136,7 +157,7 @@ func (s *AppService) SendVerifyCode(email string) (*response.SendVerifyCodeRespo
 	}
 
 	//todo Save code logic
-	codeExist, err := s.checkVerificationCode(email)
+	codeExist, err := s.RedisService.CheckVerificationCode(email)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
 			Message: "Server Error",
@@ -152,7 +173,7 @@ func (s *AppService) SendVerifyCode(email string) (*response.SendVerifyCodeRespo
 
 	rand.Seed(uint64(time.Now().UnixNano()))
 	code := fmt.Sprintf("%04d", rand.Intn(10000))
-	err = s.setVerificationCode(email, code)
+	err = s.RedisService.SetVerificationCode(email, code)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
 			Message: "Server Error",
@@ -162,19 +183,19 @@ func (s *AppService) SendVerifyCode(email string) (*response.SendVerifyCodeRespo
 	//todo Send code to email logic
 	s.sendMessage(email)
 
-	res := &response.SendVerifyCodeResponse{
+	res := &response.DefaultSuccessResponse{
 		Success: true,
 		Message: "Verify code successfully sent to your email: " + code,
 	}
 	return res, http.StatusOK, nil
 }
 
-func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountResponse, int, *response.DefaultErrorResponse) {
-	storedCode, err := s.getVerificationCode(email)
+func (s *AppService) VerifyAccount(email, code string) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
+	storedCode, err := s.RedisService.GetVerificationCode(email)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
 			Message: "Server Error",
-			Detail:  fmt.Sprintf("Error when try to get verification code from redis: %w", err.Error()),
+			Detail:  fmt.Sprintf("Error when try to get verification code from redisStorage: %w", err.Error()),
 		}
 	}
 
@@ -193,9 +214,9 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 		}
 	}
 
-	err = s.deleteVerificationCode(email)
+	err = s.RedisService.DeleteVerificationCode(email)
 
-	res := &response.VerifyAccountResponse{
+	res := &response.DefaultSuccessResponse{
 		Success: true,
 		Message: "Your account has been verified successfully!",
 	}

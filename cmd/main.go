@@ -3,7 +3,7 @@ package main
 import (
 	"social-media-back/config"
 	"social-media-back/internal/logger"
-	"social-media-back/internal/redis"
+	"social-media-back/internal/redisStorage"
 	"social-media-back/internal/storage"
 	"social-media-back/routes"
 )
@@ -25,10 +25,10 @@ func main() {
 	defer db.Close()
 
 	// connect to Redis
-	redisClient := redis.CreateClient()
+	redisClient := redisStorage.CreateClient()
 
 	// setup router
-	router := routes.SetupRoutes(db, redisClient)
+	router := routes.SetupRoutes(cfg, db, redisClient)
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		log.Error("Error when starting the server", "Error", err)
 		return

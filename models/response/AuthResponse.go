@@ -13,13 +13,3 @@ type RegisterResponse struct {
 	Message string       `json:"message"`
 	Success bool         `json:"success" `
 }
-
-type SendVerifyCodeResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-}
-
-type VerifyAccountResponse struct {
-	Message string `json:"message"`
-	Success bool   `json:"success"`
-}
