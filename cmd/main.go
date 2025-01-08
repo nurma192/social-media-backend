@@ -22,7 +22,7 @@ func main() {
 
 	defer db.Close()
 
-	router := routes.SetupRoutes()
+	router := routes.SetupRoutes(db)
 
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		log.Error("Error when starting the server", "Error", err)
