@@ -36,9 +36,25 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 		}
 	}
 
+	token, err := s.JWTService.GenerateAccessToken(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error when try to generate access token",
+			Detail:  err.Error(),
+		}
+	}
+
+	refreshToken, err := s.JWTService.GenerateRefreshToken(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error, when try to generate refresh token",
+			Detail:  err.Error(),
+		}
+	}
+
 	res := &response.LoginResponse{
-		RefreshToken: "",
-		Token:        "",
+		RefreshToken: refreshToken,
+		Token:        token,
 		Success:      true,
 	}
 	return res, http.StatusOK, nil
