@@ -52,12 +52,15 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 		}
 	}
 
+	fmt.Println("login refreshToken", refreshToken)
+
 	res := &response.LoginResponse{
 		RefreshToken: refreshToken,
 		Token:        token,
 		Success:      true,
 	}
 	return res, http.StatusOK, nil
+
 }
 
 func (s *AppService) Register(request request.RegisterRequest) (*response.RegisterResponse, int, *response.DefaultErrorResponse) {
@@ -235,6 +238,39 @@ func (s *AppService) VerifyAccount(email, code string) (*response.DefaultSuccess
 	res := &response.DefaultSuccessResponse{
 		Success: true,
 		Message: "Your account has been verified successfully!",
+	}
+	return res, http.StatusOK, nil
+}
+
+func (s *AppService) RefreshToken(refreshToken string) (*response.LoginResponse, int, *response.DefaultErrorResponse) {
+	claims, err := s.JWTService.ValidateToken(refreshToken)
+	fmt.Println("refreshToken:", refreshToken)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  fmt.Sprintf("failed to validate token: %w", err.Error()),
+		}
+	}
+
+	token, err := s.JWTService.GenerateAccessToken(claims.Email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  fmt.Sprintf("failed to generate access token: %w", err.Error()),
+		}
+	}
+	newRefreshToken, err := s.JWTService.GenerateRefreshToken(claims.Email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error, when try to generate refresh token",
+			Detail:  err.Error(),
+		}
+	}
+
+	res := &response.LoginResponse{
+		RefreshToken: newRefreshToken,
+		Token:        token,
+		Success:      true,
 	}
 	return res, http.StatusOK, nil
 }

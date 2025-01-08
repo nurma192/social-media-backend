@@ -25,6 +25,7 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 		authGroup.POST("/register", appController.Register)
 		authGroup.POST("/send-verify-code", appController.SendVerifyCode)
 		authGroup.POST("/verify-account", appController.VerifyAccount)
+		authGroup.POST("/refresh", appController.RefreshToken)
 	}
 
 	return router

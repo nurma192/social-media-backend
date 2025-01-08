@@ -50,7 +50,7 @@ func (j JWTService) GenerateRefreshToken(email string) (string, error) {
 
 func (j JWTService) ValidateToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return j.SecretKey, nil
+		return []byte(j.SecretKey), nil
 	})
 	if err != nil {
 		return nil, err

@@ -88,3 +88,27 @@ func (c *AppController) VerifyAccount(ctx *gin.Context) {
 
 	ctx.JSON(code, res)
 }
+
+func (c *AppController) RefreshToken(ctx *gin.Context) {
+	refreshToken, err := ctx.Cookie("RefreshToken")
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, response.DefaultErrorResponse{
+			Message: "Refresh token not found in cookie",
+			Detail:  err.Error(),
+		})
+		return
+	}
+
+	res, code, errRes := c.AppService.RefreshToken(refreshToken)
+	if errRes != nil {
+		ctx.JSON(code, errRes)
+		return
+	}
+
+	ctx.SetCookie("RefreshToken", res.RefreshToken, 3600*24*7, "", "", false, true)
+	ctx.JSON(http.StatusOK, gin.H{
+		"Success": true,
+		"token":   res.Token,
+	})
+
+}
