@@ -136,6 +136,9 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 			Detail:  fmt.Sprintf("failed to insert user into DB: %w", err.Error()),
 		}
 	}
+
+	s.SendVerifyCode(request.Email)
+
 	user := &models.User{
 		ID:        userID,
 		Email:     request.Email,
@@ -147,7 +150,7 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 
 	res := &response.RegisterResponse{
 		User:    user,
-		Message: "User successfully created",
+		Message: "User successfully created, code sent to email",
 		Success: true,
 	}
 
@@ -210,6 +213,27 @@ func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessRespo
 }
 
 func (s *AppService) VerifyAccount(email, code string) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
+	user, err := s.getUserByEmail(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  fmt.Sprintf("failed to check user exist by email: %w", err.Error()),
+		}
+	}
+	if user == nil {
+		return nil, http.StatusNotFound, &response.DefaultErrorResponse{
+			Message: "User not found",
+			Detail:  fmt.Sprintf("User not found: %s", email),
+		}
+	}
+
+	if user.Verified {
+		return nil, http.StatusForbidden, &response.DefaultErrorResponse{
+			Message: "User is already verified",
+			Detail:  fmt.Sprintf("User is already verified: %s", email),
+		}
+	}
+
 	storedCode, err := s.RedisService.GetVerificationCode(email)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{

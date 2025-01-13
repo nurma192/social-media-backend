@@ -1,2 +1,5 @@
 driver: postgres
 dbstring: "host=localhost port=5432 user=postgres password=uk888888 dbname=social_media sslmode=disable"
+
+#            export GOOSE_DRIVER=postgres
+#            export GOOSE_DBSTRING="host=localhost port=5432 user=postgres password=uk888888 dbname=social_media sslmode=disable"
