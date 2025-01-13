@@ -3,7 +3,6 @@ package services
 import (
 	"database/sql"
 	"errors"
-	"github.com/go-redis/redis/v8"
 	"social-media-back/internal/auth"
 	"social-media-back/internal/redisStorage"
 	"social-media-back/models"
@@ -15,7 +14,7 @@ type AppService struct {
 	RedisService *redisStorage.RedisService
 }
 
-func NewAppService(db *sql.DB, redisClient *redis.Client, jwtService *auth.JWTService, redisService *redisStorage.RedisService) *AppService {
+func NewAppService(db *sql.DB, jwtService *auth.JWTService, redisService *redisStorage.RedisService) *AppService {
 	return &AppService{
 		DB:           db,
 		JWTService:   jwtService,

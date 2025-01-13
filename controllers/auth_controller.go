@@ -25,7 +25,7 @@ func (c *AppController) Login(ctx *gin.Context) {
 
 	ctx.SetCookie("RefreshToken", res.RefreshToken, 3600*24*7, "", "", false, true)
 	ctx.JSON(http.StatusOK, gin.H{
-		"Success": true,
+		"success": true,
 		"token":   res.Token,
 	})
 }
@@ -107,7 +107,7 @@ func (c *AppController) RefreshToken(ctx *gin.Context) {
 
 	ctx.SetCookie("RefreshToken", res.RefreshToken, 3600*24*7, "", "", false, true)
 	ctx.JSON(http.StatusOK, gin.H{
-		"Success": true,
+		"success": true,
 		"token":   res.Token,
 	})
 

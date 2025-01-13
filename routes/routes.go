@@ -7,16 +7,18 @@ import (
 	"social-media-back/config"
 	"social-media-back/controllers"
 	"social-media-back/internal/auth"
+	middleware "social-media-back/internal/middlware"
 	"social-media-back/internal/redisStorage"
 	"social-media-back/services"
 )
 
 func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *gin.Engine {
 	router := gin.Default()
+	router.Use(middleware.CORSMiddleware())
 
 	redisService := redisStorage.NewRedisService(redisClient)
 	jwtService := auth.NewJWTService(config)
-	appService := services.NewAppService(db, redisClient, jwtService, redisService)
+	appService := services.NewAppService(db, jwtService, redisService)
 	appController := controllers.NewController(appService)
 
 	authGroup := router.Group("/auth")

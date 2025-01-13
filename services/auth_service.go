@@ -200,11 +200,11 @@ func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessRespo
 		}
 	}
 	//todo Send code to email logic
-	s.sendMessage(email)
+	s.sendMessage(email, "Your verification code", "Your verification code: "+code)
 
 	res := &response.DefaultSuccessResponse{
 		Success: true,
-		Message: "Verify code successfully sent to your email: " + code,
+		Message: "Verify code successfully sent to your email",
 	}
 	return res, http.StatusOK, nil
 }
