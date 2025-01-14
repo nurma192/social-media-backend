@@ -21,12 +21,12 @@ func (s *RedisService) GetVerificationCode(email string) (string, error) {
 	storedCode, err := s.Client.Get(s.ctx, "verify:"+email).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return "", fmt.Errorf("verification code not found or code TTL expired")
+			return "", nil
 		}
 		return "", err
 	}
 	if storedCode == "" {
-		return "", fmt.Errorf("verification code not found or code TTL expired")
+		return "", nil
 	}
 	fmt.Println("getVerificationCode, storedCode:", storedCode)
 	return storedCode, nil

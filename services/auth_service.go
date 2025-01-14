@@ -76,17 +76,17 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Defaul
 		}
 	}
 
-	_, code, errRes := s.SendVerifyCode(request.Email)
-	if errRes != nil {
-		return nil, code, errRes
-	}
-
 	err = s.RedisService.SaveRegisteredUserData(&request)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
 			Message: "Server Error",
 			Detail:  err.Error(),
 		}
+	}
+
+	_, code, errRes := s.SendVerifyCode(request.Email)
+	if errRes != nil {
+		return nil, code, errRes
 	}
 
 	res := &response.DefaultSuccessResponse{
@@ -98,6 +98,31 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Defaul
 }
 
 func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
+	exist, err := s.isUserExistByEmail(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  err.Error(),
+		}
+	}
+	if exist {
+		return nil, http.StatusBadRequest, &response.DefaultErrorResponse{
+			Message: "User With this Email Already Exist",
+		}
+	}
+	userData, err := s.RedisService.GetRegisteredUserByEmail(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  "Cant check the users register ticket",
+		}
+	}
+	if userData == nil {
+		return nil, http.StatusBadRequest, &response.DefaultErrorResponse{
+			Message: "Register ticket not found",
+			Detail:  "Error users register ticket",
+		}
+	}
 	//todo Save code logic
 	codeExist, err := s.RedisService.CheckVerificationCode(email)
 	if err != nil {
@@ -108,8 +133,8 @@ func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessRespo
 	}
 	if codeExist {
 		return nil, http.StatusConflict, &response.DefaultErrorResponse{
-			Message: "User already verified",
-			Detail:  fmt.Sprintf("User already verified: %s", email),
+			Message: "User verify code already sent",
+			Detail:  fmt.Sprintf("User verify code already sent: %s", email),
 		}
 	}
 
