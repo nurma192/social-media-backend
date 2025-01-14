@@ -8,7 +8,7 @@ type LoginResponse struct {
 	Success      bool   `json:"success"`
 }
 
-type RegisterResponse struct {
+type VerifyAccountResponse struct {
 	User    *models.User `json:"user"`
 	Message string       `json:"message"`
 	Success bool         `json:"success" `

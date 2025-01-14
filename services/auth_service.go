@@ -63,7 +63,7 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 
 }
 
-func (s *AppService) Register(request request.RegisterRequest) (*response.RegisterResponse, int, *response.DefaultErrorResponse) {
+func (s *AppService) Register(request request.RegisterRequest) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
 	var existingUserId int
 	err := s.DB.QueryRow("SELECT id FROM users where email = $1", request.Email).Scan(&existingUserId)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -80,7 +80,107 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 		}
 	}
 
-	hashedPassword, err := hashing.HashPassword(request.Password)
+	_, code, errRes := s.SendVerifyCode(request.Email)
+	if errRes != nil {
+		return nil, code, errRes
+	}
+
+	err = s.RedisService.SaveRegisteredUserData(&request)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  err.Error(),
+		}
+	}
+
+	res := &response.DefaultSuccessResponse{
+		Message: "Code sent to email, verify your account",
+		Success: true,
+	}
+
+	return res, http.StatusOK, nil
+}
+
+func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
+	//todo Save code logic
+	codeExist, err := s.RedisService.CheckVerificationCode(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  fmt.Sprintf("failed to check verification code: %w", err.Error()),
+		}
+	}
+	if codeExist {
+		return nil, http.StatusConflict, &response.DefaultErrorResponse{
+			Message: "User already verified",
+			Detail:  fmt.Sprintf("User already verified: %s", email),
+		}
+	}
+
+	rand.Seed(uint64(time.Now().UnixNano()))
+	code := fmt.Sprintf("%04d", rand.Intn(10000))
+	err = s.RedisService.SetVerificationCode(email, code)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error, failed to save verification code",
+			Detail:  fmt.Sprintf("failed to save verification code: %w", err.Error()),
+		}
+	}
+	//todo Send code to email logic
+	err = s.sendMessage(email, "Your verification code", "Your verification code: "+code+"\n Verify Your account within 10 minutes, Registration tickets time out after 10 minutes")
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error, failed to send verification code",
+			Detail:  fmt.Sprintf("failed to send verification code: %w", err.Error()),
+		}
+	}
+
+	res := &response.DefaultSuccessResponse{
+		Success: true,
+		Message: "Verify code successfully sent to your email",
+	}
+	return res, http.StatusOK, nil
+}
+
+func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountResponse, int, *response.DefaultErrorResponse) {
+	storedCode, err := s.RedisService.GetVerificationCode(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  fmt.Sprintf("Error when try to get verification code from redisStorage: %w", err.Error()),
+		}
+	}
+
+	if storedCode == "" {
+		return nil, http.StatusNotFound, &response.DefaultErrorResponse{
+			Message: "User not found",
+			Detail:  fmt.Sprintf("User %s not found ", email),
+		}
+	}
+
+	if storedCode != code {
+		return nil, http.StatusForbidden, &response.DefaultErrorResponse{
+			Message: "Wrong verification code",
+			Detail:  fmt.Sprintf("wrong verification code"),
+		}
+	}
+
+	userData, err := s.RedisService.GetRegisteredUserByEmail(email)
+	if err != nil {
+		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+			Message: "Server Error",
+			Detail:  "Error when try to get Registered User ticket " + err.Error(),
+		}
+	}
+
+	if userData == nil {
+		return nil, http.StatusNotFound, &response.DefaultErrorResponse{
+			Message: "Registration tickets time is out",
+			Detail:  fmt.Sprintf("Registration tickets time is out"),
+		}
+	}
+
+	hashedPassword, err := hashing.HashPassword(userData.Password)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
 			Message: "Server Error",
@@ -88,7 +188,7 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 		}
 	}
 
-	icon := jdenticon.New(request.Firstname)
+	icon := jdenticon.New(userData.Firstname)
 	svg, err := icon.SVG()
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
@@ -96,7 +196,7 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 			Detail:  fmt.Sprintf("failed to generate svg: %w", err.Error()),
 		}
 	}
-	avatarName := fmt.Sprintf("%s_%s.svg", request.Firstname, time.Now().Format("2006_01_02_15_04_05"))
+	avatarName := fmt.Sprintf("%s_%s.svg", userData.Firstname, time.Now().Format("2006_01_02_15_04_05"))
 	avatarPath := "uploads/avatars/" + avatarName
 	file, err := os.Create(avatarPath)
 
@@ -123,10 +223,10 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 	var userID int
 	err = s.DB.QueryRow(
 		query,
-		request.Email,
+		userData.Email,
 		hashedPassword,
-		request.Firstname,
-		request.Lastname,
+		userData.Firstname,
+		userData.Lastname,
 		avatarURL,
 	).Scan(&userID)
 
@@ -136,117 +236,13 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Regist
 			Detail:  fmt.Sprintf("failed to insert user into DB: %w", err.Error()),
 		}
 	}
-
-	s.SendVerifyCode(request.Email)
-
-	user := &models.User{
+	createdUser := &models.User{
 		ID:        userID,
-		Email:     request.Email,
-		Firstname: request.Firstname,
-		Lastname:  request.Lastname,
+		Email:     userData.Email,
+		Firstname: userData.Firstname,
+		Lastname:  userData.Lastname,
 		AvatarURL: &avatarURL,
 		CreatedAt: time.Now(),
-	}
-
-	res := &response.RegisterResponse{
-		User:    user,
-		Message: "User successfully created, code sent to email",
-		Success: true,
-	}
-
-	return res, http.StatusCreated, nil
-}
-
-func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
-	user, err := s.getUserByEmail(email)
-	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
-			Message: "Server error",
-			Detail:  err.Error(),
-		}
-	}
-	if user == nil {
-		return nil, http.StatusNotFound, &response.DefaultErrorResponse{
-			Message: "User not found",
-			Detail:  fmt.Sprintf("User not found: %s", email),
-		}
-	}
-	if user.Verified {
-		return nil, http.StatusForbidden, &response.DefaultErrorResponse{
-			Message: "User is already verified",
-			Detail:  fmt.Sprintf("User is already verified: %s", email),
-		}
-	}
-
-	//todo Save code logic
-	codeExist, err := s.RedisService.CheckVerificationCode(email)
-	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to check verification code: %w", err.Error()),
-		}
-	}
-	if codeExist {
-		return nil, http.StatusConflict, &response.DefaultErrorResponse{
-			Message: "User already verified",
-			Detail:  fmt.Sprintf("User already verified: %s", email),
-		}
-	}
-
-	rand.Seed(uint64(time.Now().UnixNano()))
-	code := fmt.Sprintf("%04d", rand.Intn(10000))
-	err = s.RedisService.SetVerificationCode(email, code)
-	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to set verification code: %w", err.Error()),
-		}
-	}
-	//todo Send code to email logic
-	s.sendMessage(email, "Your verification code", "Your verification code: "+code)
-
-	res := &response.DefaultSuccessResponse{
-		Success: true,
-		Message: "Verify code successfully sent to your email",
-	}
-	return res, http.StatusOK, nil
-}
-
-func (s *AppService) VerifyAccount(email, code string) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
-	user, err := s.getUserByEmail(email)
-	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to check user exist by email: %w", err.Error()),
-		}
-	}
-	if user == nil {
-		return nil, http.StatusNotFound, &response.DefaultErrorResponse{
-			Message: "User not found",
-			Detail:  fmt.Sprintf("User not found: %s", email),
-		}
-	}
-
-	if user.Verified {
-		return nil, http.StatusForbidden, &response.DefaultErrorResponse{
-			Message: "User is already verified",
-			Detail:  fmt.Sprintf("User is already verified: %s", email),
-		}
-	}
-
-	storedCode, err := s.RedisService.GetVerificationCode(email)
-	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("Error when try to get verification code from redisStorage: %w", err.Error()),
-		}
-	}
-
-	if storedCode != code {
-		return nil, http.StatusForbidden, &response.DefaultErrorResponse{
-			Message: "Wrong verification code",
-			Detail:  fmt.Sprintf("wrong verification code"),
-		}
 	}
 
 	_, err = s.DB.Exec("UPDATE users SET verified = true WHERE email = $1", email)
@@ -257,13 +253,15 @@ func (s *AppService) VerifyAccount(email, code string) (*response.DefaultSuccess
 		}
 	}
 
-	err = s.RedisService.DeleteVerificationCode(email)
+	_ = s.RedisService.DeleteVerificationCode(email)
+	_ = s.RedisService.DeleteRegisteredUserByEmail(email)
 
-	res := &response.DefaultSuccessResponse{
+	res := &response.VerifyAccountResponse{
+		User:    createdUser,
 		Success: true,
 		Message: "Your account has been verified successfully!",
 	}
-	return res, http.StatusOK, nil
+	return res, http.StatusCreated, nil
 }
 
 func (s *AppService) RefreshToken(refreshToken string) (*response.LoginResponse, int, *response.DefaultErrorResponse) {
