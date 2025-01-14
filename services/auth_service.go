@@ -1,8 +1,6 @@
 package services
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"github.com/stdatiks/jdenticon-go"
 	"golang.org/x/exp/rand"
@@ -64,19 +62,17 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 }
 
 func (s *AppService) Register(request request.RegisterRequest) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
-	var existingUserId int
-	err := s.DB.QueryRow("SELECT id FROM users where email = $1", request.Email).Scan(&existingUserId)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to check existing user: %w", err.Error()),
+	isExistByEmail, err := s.isUserExistByEmail(request.Email)
+	isExistByUsername, err := s.isUserExistByUsername(request.Username)
+
+	if isExistByEmail {
+		return nil, http.StatusBadRequest, &response.DefaultErrorResponse{
+			Message: "User With this Email Already Exist",
 		}
 	}
-
-	if err == nil {
-		return nil, http.StatusConflict, &response.DefaultErrorResponse{
-			Message: "User with this email already exists",
-			Detail:  "Conflict",
+	if isExistByUsername {
+		return nil, http.StatusBadRequest, &response.DefaultErrorResponse{
+			Message: "User With this Username Already Exist",
 		}
 	}
 
@@ -219,11 +215,12 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 
 	avatarURL := avatarPath
 
-	query := `INSERT INTO users (email, password, firstname, lastname, avatar_url) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO users (email, username, password, firstname, lastname, avatar_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 	var userID int
 	err = s.DB.QueryRow(
 		query,
 		userData.Email,
+		userData.Username,
 		hashedPassword,
 		userData.Firstname,
 		userData.Lastname,
@@ -239,6 +236,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	createdUser := &models.User{
 		ID:        userID,
 		Email:     userData.Email,
+		Username:  userData.Username,
 		Firstname: userData.Firstname,
 		Lastname:  userData.Lastname,
 		AvatarURL: &avatarURL,

@@ -21,6 +21,26 @@ func NewAppService(db *sql.DB, jwtService *auth.JWTService, redisService *redisS
 		RedisService: redisService,
 	}
 }
+
+func (s *AppService) getUserByEmail(email string) (*models.User, error) {
+	user := &models.User{}
+	err := s.DB.QueryRow(
+		"SELECT id, email, username, firstname, lastname, password, avatar_url, date_of_birth, bio, verified, location, created_at FROM users WHERE email = $1",
+		email,
+	).Scan(
+		&user.ID, &user.Email, &user.Username, &user.Firstname, &user.Lastname, &user.Password, &user.AvatarURL,
+		&user.DateOfBirth, &user.Bio, &user.Verified, &user.Location, &user.CreatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil // No user found, but no error
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
 func (s *AppService) isUserExistByEmail(email string) (bool, error) {
 	var userID int
 	err := s.DB.QueryRow(
@@ -32,26 +52,23 @@ func (s *AppService) isUserExistByEmail(email string) (bool, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil // No user found
 		}
-		return false, err // Some other error occurred
+		return false, err
 	}
-	return true, nil // User exists
+	return true, nil
 }
 
-func (s *AppService) getUserByEmail(email string) (*models.User, error) {
-	user := &models.User{}
+func (s *AppService) isUserExistByUsername(username string) (bool, error) {
+	var userID int
 	err := s.DB.QueryRow(
-		"SELECT id, email, firstname, lastname, password, avatar_url, date_of_birth, bio, verified, location, created_at FROM users WHERE email = $1",
-		email,
-	).Scan(
-		&user.ID, &user.Email, &user.Firstname, &user.Lastname, &user.Password, &user.AvatarURL,
-		&user.DateOfBirth, &user.Bio, &user.Verified, &user.Location, &user.CreatedAt,
-	)
+		"SELECT id FROM users WHERE username = $1",
+		username,
+	).Scan(&userID)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil // No user found, but no error
+			return false, nil // No user found
 		}
-		return nil, err
+		return false, err
 	}
-	return user, nil
+	return true, nil
 }
