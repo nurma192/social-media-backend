@@ -30,5 +30,10 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 		authGroup.POST("/refresh", appController.RefreshToken)
 	}
 
+	userGroup := router.Group("/user").Use(appService.RequireAuth)
+	{
+		userGroup.GET("/current", appController.Current)
+	}
+
 	return router
 }
