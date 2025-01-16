@@ -10,7 +10,7 @@ import (
 func (c *AppController) Login(ctx *gin.Context) {
 	var req request.LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultErrorResponse{
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
 			Message: "Bad request",
 			Detail:  err.Error(),
 		})
@@ -34,7 +34,7 @@ func (c *AppController) Register(ctx *gin.Context) {
 	var req request.RegisterRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultErrorResponse{
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
 			Detail:  err.Error(),
 			Message: "Invalid request body",
 		})
@@ -54,7 +54,7 @@ func (c *AppController) SendVerifyCode(ctx *gin.Context) {
 	var req request.SendVerifyCodeRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultErrorResponse{
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
 			Detail:  err.Error(),
 			Message: "Invalid request body",
 		})
@@ -73,7 +73,7 @@ func (c *AppController) SendVerifyCode(ctx *gin.Context) {
 func (c *AppController) VerifyAccount(ctx *gin.Context) {
 	var req request.VerifyAccountRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultErrorResponse{
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
 			Detail:  err.Error(),
 			Message: "Invalid request body",
 		})
@@ -92,7 +92,7 @@ func (c *AppController) VerifyAccount(ctx *gin.Context) {
 func (c *AppController) RefreshToken(ctx *gin.Context) {
 	refreshToken, err := ctx.Cookie("RefreshToken")
 	if err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultErrorResponse{
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
 			Message: "Refresh token not found in cookie",
 			Detail:  err.Error(),
 		})

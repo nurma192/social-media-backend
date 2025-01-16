@@ -21,6 +21,8 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 	appService := services.NewAppService(db, jwtService, redisService)
 	appController := controllers.NewController(appService)
 
+	router.Static("uploads", "./uploads")
+
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/login", appController.Login)

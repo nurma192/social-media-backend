@@ -13,30 +13,30 @@ import (
 	"time"
 )
 
-func (s *AppService) Login(email, password string) (*response.LoginResponse, int, *response.DefaultErrorResponse) {
+func (s *AppService) Login(email, password string) (*response.LoginResponse, int, *response.DefaultResponse) {
 	user, err := s.getUserByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  err.Error(),
 		}
 	}
 
 	if user == nil {
-		return nil, http.StatusUnauthorized, &response.DefaultErrorResponse{
+		return nil, http.StatusUnauthorized, &response.DefaultResponse{
 			Message: "Incorrect Email or Password",
 		}
 	}
 
 	if !hashing.CheckPassword(user.Password, password) {
-		return nil, http.StatusUnauthorized, &response.DefaultErrorResponse{
+		return nil, http.StatusUnauthorized, &response.DefaultResponse{
 			Message: "Incorrect Email or Password",
 		}
 	}
 
 	token, err := s.JWTService.GenerateAccessToken(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error when try to generate access token",
 			Detail:  err.Error(),
 		}
@@ -44,7 +44,7 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 
 	refreshToken, err := s.JWTService.GenerateRefreshToken(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error, when try to generate refresh token",
 			Detail:  err.Error(),
 		}
@@ -61,24 +61,24 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 
 }
 
-func (s *AppService) Register(request request.RegisterRequest) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
+func (s *AppService) Register(request request.RegisterRequest) (*response.DefaultResponse, int, *response.DefaultResponse) {
 	isExistByEmail, err := s.isUserExistByEmail(request.Email)
 	isExistByUsername, err := s.isUserExistByUsername(request.Username)
 
 	if isExistByEmail {
-		return nil, http.StatusBadRequest, &response.DefaultErrorResponse{
+		return nil, http.StatusBadRequest, &response.DefaultResponse{
 			Message: "User With this Email Already Exist",
 		}
 	}
 	if isExistByUsername {
-		return nil, http.StatusBadRequest, &response.DefaultErrorResponse{
+		return nil, http.StatusBadRequest, &response.DefaultResponse{
 			Message: "User With this Username Already Exist",
 		}
 	}
 
 	err = s.RedisService.SaveRegisteredUserData(&request)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  err.Error(),
 		}
@@ -89,7 +89,7 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Defaul
 		return nil, code, errRes
 	}
 
-	res := &response.DefaultSuccessResponse{
+	res := &response.DefaultResponse{
 		Message: "Code sent to email, verify your account",
 		Success: true,
 	}
@@ -97,28 +97,28 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Defaul
 	return res, http.StatusOK, nil
 }
 
-func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessResponse, int, *response.DefaultErrorResponse) {
+func (s *AppService) SendVerifyCode(email string) (*response.DefaultResponse, int, *response.DefaultResponse) {
 	exist, err := s.isUserExistByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  err.Error(),
 		}
 	}
 	if exist {
-		return nil, http.StatusBadRequest, &response.DefaultErrorResponse{
+		return nil, http.StatusBadRequest, &response.DefaultResponse{
 			Message: "User With this Email Already Exist",
 		}
 	}
 	userData, err := s.RedisService.GetRegisteredUserByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  "Cant check the users register ticket",
 		}
 	}
 	if userData == nil {
-		return nil, http.StatusBadRequest, &response.DefaultErrorResponse{
+		return nil, http.StatusBadRequest, &response.DefaultResponse{
 			Message: "Register ticket not found",
 			Detail:  "Error users register ticket",
 		}
@@ -126,13 +126,13 @@ func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessRespo
 	//todo Save code logic
 	codeExist, err := s.RedisService.CheckVerificationCode(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to check verification code: %w", err.Error()),
 		}
 	}
 	if codeExist {
-		return nil, http.StatusConflict, &response.DefaultErrorResponse{
+		return nil, http.StatusConflict, &response.DefaultResponse{
 			Message: "User verify code already sent",
 			Detail:  fmt.Sprintf("User verify code already sent: %s", email),
 		}
@@ -142,7 +142,7 @@ func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessRespo
 	code := fmt.Sprintf("%04d", rand.Intn(10000))
 	err = s.RedisService.SetVerificationCode(email, code)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error, failed to save verification code",
 			Detail:  fmt.Sprintf("failed to save verification code: %w", err.Error()),
 		}
@@ -150,37 +150,37 @@ func (s *AppService) SendVerifyCode(email string) (*response.DefaultSuccessRespo
 	//todo Send code to email logic
 	err = s.sendMessage(email, "Your verification code", "Your verification code: "+code+"\n Verify Your account within 10 minutes, Registration tickets time out after 10 minutes")
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error, failed to send verification code",
 			Detail:  fmt.Sprintf("failed to send verification code: %w", err.Error()),
 		}
 	}
 
-	res := &response.DefaultSuccessResponse{
+	res := &response.DefaultResponse{
 		Success: true,
 		Message: "Verify code successfully sent to your email",
 	}
 	return res, http.StatusOK, nil
 }
 
-func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountResponse, int, *response.DefaultErrorResponse) {
+func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountResponse, int, *response.DefaultResponse) {
 	storedCode, err := s.RedisService.GetVerificationCode(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("Error when try to get verification code from redisStorage: %w", err.Error()),
 		}
 	}
 
 	if storedCode == "" {
-		return nil, http.StatusNotFound, &response.DefaultErrorResponse{
+		return nil, http.StatusNotFound, &response.DefaultResponse{
 			Message: "User not found",
 			Detail:  fmt.Sprintf("User %s not found ", email),
 		}
 	}
 
 	if storedCode != code {
-		return nil, http.StatusForbidden, &response.DefaultErrorResponse{
+		return nil, http.StatusForbidden, &response.DefaultResponse{
 			Message: "Wrong verification code",
 			Detail:  fmt.Sprintf("wrong verification code"),
 		}
@@ -188,14 +188,14 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 
 	userData, err := s.RedisService.GetRegisteredUserByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  "Error when try to get Registered User ticket " + err.Error(),
 		}
 	}
 
 	if userData == nil {
-		return nil, http.StatusNotFound, &response.DefaultErrorResponse{
+		return nil, http.StatusNotFound, &response.DefaultResponse{
 			Message: "Registration tickets time is out",
 			Detail:  fmt.Sprintf("Registration tickets time is out"),
 		}
@@ -203,7 +203,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 
 	hashedPassword, err := hashing.HashPassword(userData.Password)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to hashing password: %w", err.Error()),
 		}
@@ -212,7 +212,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	icon := jdenticon.New(userData.Firstname)
 	svg, err := icon.SVG()
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to generate svg: %w", err.Error()),
 		}
@@ -222,7 +222,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	file, err := os.Create(avatarPath)
 
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to create avatar file: %w", err.Error()),
 		}
@@ -232,7 +232,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	svgString := string(svg)
 	_, err = file.WriteString(svgString)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to write avatar file: %w", err.Error()),
 		}
@@ -253,7 +253,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	).Scan(&userID)
 
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to insert user into DB: %w", err.Error()),
 		}
@@ -270,7 +270,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 
 	_, err = s.DB.Exec("UPDATE users SET verified = true WHERE email = $1", email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to update verification of account: %w", err.Error()),
 		}
@@ -287,11 +287,11 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	return res, http.StatusCreated, nil
 }
 
-func (s *AppService) RefreshToken(refreshToken string) (*response.LoginResponse, int, *response.DefaultErrorResponse) {
+func (s *AppService) RefreshToken(refreshToken string) (*response.LoginResponse, int, *response.DefaultResponse) {
 	claims, err := s.JWTService.ValidateToken(refreshToken)
 	fmt.Println("refreshToken:", refreshToken)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to validate token: %w", err.Error()),
 		}
@@ -299,14 +299,14 @@ func (s *AppService) RefreshToken(refreshToken string) (*response.LoginResponse,
 
 	token, err := s.JWTService.GenerateAccessToken(claims.Email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
 			Detail:  fmt.Sprintf("failed to generate access token: %w", err.Error()),
 		}
 	}
 	newRefreshToken, err := s.JWTService.GenerateRefreshToken(claims.Email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultErrorResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error, when try to generate refresh token",
 			Detail:  err.Error(),
 		}

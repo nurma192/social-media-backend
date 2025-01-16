@@ -12,7 +12,7 @@ func (s *AppService) RequireAuth(ctx *gin.Context) {
 	fmt.Println("authToken: ", authToken)
 
 	if authToken == "" {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.DefaultErrorResponse{
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.DefaultResponse{
 			Message: "Unauthorized",
 			Detail:  "No Access Token provided",
 		})
@@ -25,7 +25,7 @@ func (s *AppService) RequireAuth(ctx *gin.Context) {
 
 	claims, err := s.JWTService.ValidateToken(authToken)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.DefaultErrorResponse{
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.DefaultResponse{
 			Message: "Unauthorized",
 			Detail:  "Invalid or expired token: " + err.Error(),
 		})
