@@ -7,6 +7,7 @@ import (
 	"social-media-back/config"
 	"social-media-back/controllers"
 	"social-media-back/internal/auth"
+	"social-media-back/internal/awsStorage"
 	middleware "social-media-back/internal/middlware"
 	"social-media-back/internal/redisStorage"
 	"social-media-back/services"
@@ -18,7 +19,13 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 
 	redisService := redisStorage.NewRedisService(redisClient)
 	jwtService := auth.NewJWTService(config)
-	appService := services.NewAppService(db, jwtService, redisService)
+	awsService := awsStorage.InitAWS(&awsStorage.MyConfig{
+		AWSRegion:      config.AWSRegion,
+		AWSAccessKeyID: config.AWSAccessKeyID,
+		AWSSecretKey:   config.AWSSecretKey,
+		AWSS3Bucket:    config.AWSS3Bucket,
+	})
+	appService := services.NewAppService(db, jwtService, redisService, awsService)
 	appController := controllers.NewController(appService)
 
 	router.Static("uploads", "./uploads")
@@ -35,6 +42,15 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 	userGroup := router.Group("/user").Use(appService.RequireAuth)
 	{
 		userGroup.GET("/current", appController.Current)
+	}
+
+	postGroup := router.Group("/posts") //.Use(appService.RequireAuth)
+	{
+		postGroup.POST("", appController.CreatePost)
+		postGroup.GET("/:id", appController.GetPost)
+		postGroup.GET("", appController.GetAllPosts)
+		postGroup.DELETE("/:id", appController.DeletePost)
+		//postGroup.PUT("/:id", appController.DeletePost2)
 	}
 
 	return router

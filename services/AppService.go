@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"social-media-back/internal/auth"
+	"social-media-back/internal/awsStorage"
 	"social-media-back/internal/redisStorage"
 	"social-media-back/models"
 )
@@ -12,13 +13,15 @@ type AppService struct {
 	DB           *sql.DB
 	JWTService   *auth.JWTService
 	RedisService *redisStorage.RedisService
+	AWSService   *awsStorage.AWSService
 }
 
-func NewAppService(db *sql.DB, jwtService *auth.JWTService, redisService *redisStorage.RedisService) *AppService {
+func NewAppService(db *sql.DB, jwtService *auth.JWTService, redisService *redisStorage.RedisService, awsService *awsStorage.AWSService) *AppService {
 	return &AppService{
 		DB:           db,
 		JWTService:   jwtService,
 		RedisService: redisService,
+		AWSService:   awsService,
 	}
 }
 

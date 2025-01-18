@@ -23,14 +23,16 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 	}
 
 	if user == nil {
-		return nil, http.StatusUnauthorized, &response.DefaultResponse{
-			Message: "Incorrect Email or Password",
+		return nil, http.StatusBadRequest, &response.DefaultResponse{
+			Message: "Incorrec Email or Password",
+			Detail:  "user == nil",
 		}
 	}
 
 	if !hashing.CheckPassword(user.Password, password) {
-		return nil, http.StatusUnauthorized, &response.DefaultResponse{
+		return nil, http.StatusBadRequest, &response.DefaultResponse{
 			Message: "Incorrect Email or Password",
+			Detail:  "CheckPassword",
 		}
 	}
 
