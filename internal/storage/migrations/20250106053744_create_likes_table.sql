@@ -3,9 +3,11 @@
 CREATE TABLE likes
 (
     id         SERIAL PRIMARY KEY,
-    user_id    INT REFERENCES users (id) ON DELETE CASCADE,
-    post_id    INT REFERENCES posts (id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id    INT NOT NULL,
+    post_id    INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_like FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_post_like FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE
 );
 -- +goose StatementEnd
 

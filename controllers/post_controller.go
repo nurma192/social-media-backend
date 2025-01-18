@@ -1,21 +1,14 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"mime/multipart"
 	"net/http"
+	"social-media-back/models/request"
 	"social-media-back/models/response"
 )
 
-type CreatePostRequest struct {
-	UserID      string                  `form:"userId" binding:"required"`
-	ContentText string                  `form:"contentText"`
-	Images      []*multipart.FileHeader `form:"images"`
-}
-
 func (c *AppController) CreatePost(ctx *gin.Context) {
-	var req CreatePostRequest
+	var req request.CreatePostRequest
 
 	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
@@ -30,38 +23,13 @@ func (c *AppController) CreatePost(ctx *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(req)
-
-	var uploadedImagesURLs []string
-
-	for _, fileHeader := range req.Images {
-		file, err := fileHeader.Open()
-		if err != nil {
-			ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
-				Message: "Failed to open image",
-				Detail:  err.Error(),
-			})
-			return
-		}
-		defer file.Close()
-		fmt.Println(fileHeader.Filename)
-
-		fileURL, err := c.AppService.AWSService.UploadFile(file, fileHeader.Filename, fileHeader.Header.Get("Content-Type"))
-		if err != nil {
-			ctx.IndentedJSON(http.StatusInternalServerError, response.DefaultResponse{
-				Message: "Failed to upload image to S3",
-				Detail:  err.Error(),
-			})
-			return
-		}
-		uploadedImagesURLs = append(uploadedImagesURLs, fileURL)
+	res, code, errRes := c.AppService.CreatePost(req)
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Post created successfully",
-		"userId":  req.UserID,
-		"images":  uploadedImagesURLs, // Возвращаем загруженные URL
-	})
+	ctx.IndentedJSON(code, res)
 }
 
 func (c *AppController) GetPost(ctx *gin.Context) {

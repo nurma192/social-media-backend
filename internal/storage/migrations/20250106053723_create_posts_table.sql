@@ -4,9 +4,9 @@ CREATE TABLE posts
 (
     id         SERIAL PRIMARY KEY,
     content    VARCHAR(255) NOT NULL,
-
-    user_id    INT REFERENCES users (id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id    INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 -- +goose StatementEnd
 
