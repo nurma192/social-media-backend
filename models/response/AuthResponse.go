@@ -13,3 +13,8 @@ type VerifyAccountResponse struct {
 	Message string       `json:"message"`
 	Success bool         `json:"success" `
 }
+type VerifyAccountResponse2 struct {
+	User    *models.User `json:"user"`
+	Message string       `json:"message"`
+	Success bool         `json:"success" `
+}
