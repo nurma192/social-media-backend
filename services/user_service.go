@@ -6,7 +6,7 @@ import (
 )
 
 func (s *AppService) CurrentUser(email string) (*response.CurrentUserResponse, int, *response.DefaultResponse) {
-	user, err := s.getUserByEmail(email)
+	user, err := s.DBService.GetUserByEmail(email)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",

@@ -1,11 +1,18 @@
-package services
+package mail
 
 import (
 	"fmt"
 	"gopkg.in/gomail.v2"
 )
 
-func (s *AppService) sendMessage(email, header, message string) error {
+type EmailService struct {
+}
+
+func NewEmailService() *EmailService {
+	return &EmailService{}
+}
+
+func (s *EmailService) SendMessage(email, header, message string) error {
 	m := gomail.NewMessage()
 
 	m.SetHeader("From", "nurma192k@gmail.com")

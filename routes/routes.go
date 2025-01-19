@@ -6,10 +6,12 @@ import (
 	"github.com/go-redis/redis/v8"
 	"social-media-back/config"
 	"social-media-back/controllers"
-	"social-media-back/internal/auth"
 	"social-media-back/internal/awsStorage"
+	"social-media-back/internal/mail"
 	middleware "social-media-back/internal/middlware"
 	"social-media-back/internal/redisStorage"
+	"social-media-back/internal/storage"
+	"social-media-back/internal/token"
 	"social-media-back/services"
 )
 
@@ -17,20 +19,23 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware())
 
+	databaseService := storage.NewDBService(db)
 	redisService := redisStorage.NewRedisService(redisClient)
-	jwtService := auth.NewJWTService(config)
+	jwtService := token.NewJWTService(config)
 	awsService := awsStorage.InitAWS(&awsStorage.MyConfig{
 		AWSRegion:      config.AWSRegion,
 		AWSAccessKeyID: config.AWSAccessKeyID,
 		AWSSecretKey:   config.AWSSecretKey,
 		AWSS3Bucket:    config.AWSS3Bucket,
 	})
-	appService := services.NewAppService(db, jwtService, redisService, awsService)
+	emailService := mail.NewEmailService()
+
+	appService := services.NewAppService(databaseService, jwtService, redisService, awsService, emailService)
 	appController := controllers.NewController(appService)
 
 	router.Static("uploads", "./uploads")
 
-	authGroup := router.Group("/auth")
+	authGroup := router.Group("/token")
 	{
 		authGroup.POST("/login", appController.Login)
 		authGroup.POST("/register", appController.Register)
@@ -44,7 +49,7 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 		userGroup.GET("/current", appController.Current)
 	}
 
-	postGroup := router.Group("/posts") //.Use(appService.RequireAuth)
+	postGroup := router.Group("/posts").Use(appService.RequireAuth)
 	{
 		postGroup.POST("", appController.CreatePost)
 		postGroup.GET("/:id", appController.GetPost)

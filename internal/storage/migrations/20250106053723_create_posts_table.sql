@@ -8,9 +8,21 @@ CREATE TABLE posts
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
+CREATE TABLE postImages
+(
+    id       SERIAL PRIMARY KEY,
+    post_id   INT NOT NULL,
+    image_url TEXT NOT NULL,
+    CONSTRAINT fk_post FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE
+);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE IF EXISTS posts;
 -- +goose StatementEnd
+
+SELECT p.id, p.user_id, p.content, p.created_at, pi.image_url FROM posts p
+LEFT JOIN postImages pi ON p.id = pi.post_id
+ORDER BY p.id p.created_at DESC

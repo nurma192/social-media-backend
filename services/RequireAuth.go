@@ -33,6 +33,9 @@ func (s *AppService) RequireAuth(ctx *gin.Context) {
 	}
 
 	ctx.Set("email", claims.Email)
+	ctx.Set("userId", claims.UserId)
+
+	fmt.Println("claims: ", claims)
 
 	ctx.Next()
 }

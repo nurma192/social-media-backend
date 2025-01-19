@@ -14,7 +14,7 @@ import (
 )
 
 func (s *AppService) Login(email, password string) (*response.LoginResponse, int, *response.DefaultResponse) {
-	user, err := s.getUserByEmail(email)
+	user, err := s.DBService.GetUserByEmail(email)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
@@ -36,7 +36,7 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 		}
 	}
 
-	token, err := s.JWTService.GenerateAccessToken(email)
+	token, err := s.JWTService.GenerateAccessToken(email, user.ID)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error when try to generate access token",
@@ -64,8 +64,8 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 }
 
 func (s *AppService) Register(request request.RegisterRequest) (*response.DefaultResponse, int, *response.DefaultResponse) {
-	isExistByEmail, err := s.isUserExistByEmail(request.Email)
-	isExistByUsername, err := s.isUserExistByUsername(request.Username)
+	isExistByEmail, err := s.DBService.IsUserExistByEmail(request.Email)
+	isExistByUsername, err := s.DBService.IsUserExistByUsername(request.Username)
 
 	if isExistByEmail {
 		return nil, http.StatusBadRequest, &response.DefaultResponse{
@@ -100,7 +100,7 @@ func (s *AppService) Register(request request.RegisterRequest) (*response.Defaul
 }
 
 func (s *AppService) SendVerifyCode(email string) (*response.DefaultResponse, int, *response.DefaultResponse) {
-	exist, err := s.isUserExistByEmail(email)
+	exist, err := s.DBService.IsUserExistByEmail(email)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
@@ -150,7 +150,7 @@ func (s *AppService) SendVerifyCode(email string) (*response.DefaultResponse, in
 		}
 	}
 	//todo Send code to email logic
-	err = s.sendMessage(email, "Your verification code", "Your verification code: "+code+"\n Verify Your account within 10 minutes, Registration tickets time out after 10 minutes")
+	err = s.EmailService.SendMessage(email, "Your verification code", "Your verification code: "+code+"\n Verify Your account within 10 minutes, Registration tickets time out after 10 minutes")
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error, failed to send verification code",
@@ -243,8 +243,8 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	avatarURL := avatarPath
 
 	query := `INSERT INTO users (email, username, password, firstname, lastname, avatar_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	var userID int
-	err = s.DB.QueryRow(
+	var userID string
+	err = s.DBService.DB.QueryRow(
 		query,
 		userData.Email,
 		userData.Username,
@@ -270,7 +270,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 		CreatedAt: time.Now(),
 	}
 
-	_, err = s.DB.Exec("UPDATE users SET verified = true WHERE email = $1", email)
+	_, err = s.DBService.DB.Exec("UPDATE users SET verified = true WHERE email = $1", email)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",
@@ -299,7 +299,7 @@ func (s *AppService) RefreshToken(refreshToken string) (*response.LoginResponse,
 		}
 	}
 
-	token, err := s.JWTService.GenerateAccessToken(claims.Email)
+	token, err := s.JWTService.GenerateAccessToken(claims.Email, claims.UserId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error",

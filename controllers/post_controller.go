@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"social-media-back/models/request"
 	"social-media-back/models/response"
+	"strconv"
 )
 
 func (c *AppController) CreatePost(ctx *gin.Context) {
+	userId := ctx.MustGet("userId").(string)
 	var req request.CreatePostRequest
 
 	if err := ctx.ShouldBind(&req); err != nil {
@@ -23,7 +25,7 @@ func (c *AppController) CreatePost(ctx *gin.Context) {
 		})
 		return
 	}
-	res, code, errRes := c.AppService.CreatePost(req)
+	res, code, errRes := c.AppService.CreatePost(req, userId)
 	if errRes != nil {
 		ctx.IndentedJSON(code, errRes)
 		return
@@ -33,15 +35,38 @@ func (c *AppController) CreatePost(ctx *gin.Context) {
 }
 
 func (c *AppController) GetPost(ctx *gin.Context) {
-	ctx.IndentedJSON(200, response.DefaultResponse{
-		Message: "Get Post",
-	})
+	id := ctx.Param("id")
+
+	res, code, errRes := c.AppService.GetPostById(id)
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+		return
+	}
+	ctx.IndentedJSON(code, res)
 }
 
 func (c *AppController) GetAllPosts(ctx *gin.Context) {
-	ctx.IndentedJSON(200, response.DefaultResponse{
-		Message: "Get All Posts",
-	})
+	limitParam := ctx.DefaultQuery("limit", "10")
+	pageParam := ctx.DefaultQuery("page", "1")
+	limit, err := strconv.Atoi(limitParam)
+	if err != nil || limit <= 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Limit must be a positive integer"})
+		return
+	}
+
+	page, err := strconv.Atoi(pageParam)
+	if err != nil || page <= 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Page must be a positive integer"})
+		return
+	}
+
+	res, code, errRes := c.AppService.GetAllPosts(limit, page)
+
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+		return
+	}
+	ctx.IndentedJSON(code, res)
 }
 
 func (c *AppController) DeletePost(ctx *gin.Context) {
