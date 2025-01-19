@@ -14,3 +14,9 @@ type GetPostsResponse struct {
 	Limit   int            `json:"limit"`
 	Posts   []*models.Post `json:"posts"`
 }
+
+type UpdatePostResponse struct {
+	Success bool         `json:"success"`
+	Message string       `json:"message"`
+	Post    *models.Post `json:"post"`
+}

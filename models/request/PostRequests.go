@@ -12,7 +12,7 @@ type DeletePostRequest struct {
 }
 
 type UpdatePostRequest struct {
-	ContentText   string                  `form:"contentText"`
-	DeletedImages []string                `form:"deletedImages"`
-	NewImages     []*multipart.FileHeader `form:"newImages"`
+	ContentText     string                  `form:"contentText"`
+	DeletedImagesId []string                `form:"deletedImagesId"`
+	NewImages       []*multipart.FileHeader `form:"newImages"`
 }

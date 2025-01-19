@@ -184,7 +184,7 @@ func (s *AppService) DeletePost(postID, userId string) (*response.DefaultRespons
 	}, http.StatusOK, nil
 }
 
-func (s *AppService) UpdatePost(postId, userId string, req *request.UpdatePostRequest) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) UpdatePost(postId, userId string, req *request.UpdatePostRequest) (*response.UpdatePostResponse, int, *response.DefaultResponse) {
 	post, err := s.DBService.GetPostQuery(postId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -193,7 +193,7 @@ func (s *AppService) UpdatePost(postId, userId string, req *request.UpdatePostRe
 		}
 	}
 
-	if len(post.Images)-len(req.DeletedImages)+len(req.NewImages) > 5 {
+	if len(post.Images)-len(req.DeletedImagesId)+len(req.NewImages) > 5 {
 		return nil, http.StatusBadRequest, &response.DefaultResponse{
 			Message: "You can't add more than 5 images to post",
 		}
@@ -205,8 +205,21 @@ func (s *AppService) UpdatePost(postId, userId string, req *request.UpdatePostRe
 		}
 	}
 
-	for _, deleteImageURL := range req.DeletedImages {
-		err := s.AWSService.DeleteFile(deleteImageURL)
+	for _, deleteImageId := range req.DeletedImagesId {
+		var deleteImageURL *string
+		for _, image := range post.Images {
+			if image.Id == deleteImageId {
+				deleteImageURL = &image.Url
+				break
+			}
+		}
+		if deleteImageURL == nil {
+			return nil, http.StatusForbidden, &response.DefaultResponse{
+				Message: "You are not allowed to delete this image",
+			}
+		}
+
+		err := s.AWSService.DeleteFile(*deleteImageURL)
 		if err != nil {
 			return nil, http.StatusInternalServerError, &response.DefaultResponse{
 				Message: "Failed to delete image from Amazon S3",
@@ -215,10 +228,20 @@ func (s *AppService) UpdatePost(postId, userId string, req *request.UpdatePostRe
 		}
 	}
 
-	//todo: delete images from DB
+	// delete images from DB
+	deleteImageQuery := `DELETE FROM postImages WHERE id = $1`
+	for _, imageId := range req.DeletedImagesId {
+		_, err = s.DBService.DB.Exec(deleteImageQuery, imageId)
+		if err != nil {
+			return nil, http.StatusInternalServerError, &response.DefaultResponse{
+				Message: "Failed to delete image from DB",
+				Detail:  err.Error(),
+			}
+		}
+	}
 
+	// upload images to S3 Storage
 	var uploadedImagesURLs []string
-
 	for index, fileHeader := range req.NewImages {
 		file, err := fileHeader.Open()
 		if err != nil {
@@ -233,6 +256,19 @@ func (s *AppService) UpdatePost(postId, userId string, req *request.UpdatePostRe
 		uploadedImagesURLs = append(uploadedImagesURLs, fileURL)
 	}
 
+	// add new postImages
+	addNewPostImagesQuery := `INSERT INTO postImages (post_id, image_url) VALUES ($1, $2)`
+	for _, imageURL := range uploadedImagesURLs {
+		_, err := s.DBService.DB.Exec(addNewPostImagesQuery, postId, imageURL)
+		if err != nil {
+			return nil, http.StatusInternalServerError, &response.DefaultResponse{
+				Message: "Failed to add new post images to DB",
+				Detail:  err.Error(),
+			}
+		}
+	}
+
+	// update post content
 	updatePostQuery := `UPDATE posts SET content = $1 WHERE id = $2`
 	_, err = s.DBService.DB.Exec(updatePostQuery, req.ContentText, postId)
 	if err != nil {
@@ -242,5 +278,11 @@ func (s *AppService) UpdatePost(postId, userId string, req *request.UpdatePostRe
 		}
 	}
 
-	return nil, http.StatusOK, nil
+	post, err = s.DBService.GetPostQuery(postId)
+
+	return &response.UpdatePostResponse{
+		Success: true,
+		Message: "Post updated successfully",
+		Post:    post,
+	}, http.StatusOK, nil
 }

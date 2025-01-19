@@ -77,6 +77,12 @@ func (s *DBService) GetPostQuery(postId string) (*models.Post, error) {
 		return nil, err
 	}
 
+	postImages, err := s.GetPostImages(postId)
+	if err != nil {
+		return nil, err
+	}
+	post.Images = postImages
+
 	return &post, nil
 }
 
@@ -98,21 +104,20 @@ func (s *DBService) GetPostImages(postId string) ([]models.Image, error) {
 	getPostImagesQuery := `SELECT id,image_url FROM postImages WHERE post_id = $1`
 	rows, err := s.DB.Query(getPostImagesQuery, postId)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []models.Image{}, nil
+		}
 		return nil, err
 	}
 	defer rows.Close()
 
 	var images []models.Image
 	for rows.Next() {
-		var imageURL string
-		var imageId string
-		if err := rows.Scan(&imageId, &imageURL); err != nil {
+		var image models.Image
+		if err := rows.Scan(&image.Id, &image.Url); err != nil {
 			return nil, err
 		}
-		images = append(images, models.Image{
-			Id:  imageId,
-			Url: imageURL,
-		})
+		images = append(images, image)
 	}
 
 	return images, nil
