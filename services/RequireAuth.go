@@ -9,7 +9,7 @@ import (
 
 func (s *AppService) RequireAuth(ctx *gin.Context) {
 	authToken := ctx.GetHeader("Authorization")
-	fmt.Println("authToken: ", authToken)
+	//fmt.Println("authToken: ", authToken)
 
 	if authToken == "" {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.DefaultResponse{
@@ -35,7 +35,7 @@ func (s *AppService) RequireAuth(ctx *gin.Context) {
 	ctx.Set("email", claims.Email)
 	ctx.Set("userId", claims.UserId)
 
-	fmt.Println("claims: ", claims)
+	fmt.Println("Email: ", claims.Email, ",UserId: ", claims.UserId)
 
 	ctx.Next()
 }

@@ -35,7 +35,7 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 
 	router.Static("uploads", "./uploads")
 
-	authGroup := router.Group("/token")
+	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/login", appController.Login)
 		authGroup.POST("/register", appController.Register)
@@ -55,7 +55,7 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 		postGroup.GET("/:id", appController.GetPost)
 		postGroup.GET("", appController.GetAllPosts)
 		postGroup.DELETE("/:id", appController.DeletePost)
-		//postGroup.PUT("/:id", appController.DeletePost2)
+		postGroup.PUT("/:id", appController.UpdatePost)
 	}
 
 	return router

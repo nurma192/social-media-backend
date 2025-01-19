@@ -36,7 +36,7 @@ func (s *AppService) Login(email, password string) (*response.LoginResponse, int
 		}
 	}
 
-	token, err := s.JWTService.GenerateAccessToken(email, user.ID)
+	token, err := s.JWTService.GenerateAccessToken(email, user.Id)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Server Error when try to generate access token",
@@ -243,7 +243,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	avatarURL := avatarPath
 
 	query := `INSERT INTO users (email, username, password, firstname, lastname, avatar_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	var userID string
+	var userId string
 	err = s.DBService.DB.QueryRow(
 		query,
 		userData.Email,
@@ -252,7 +252,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 		userData.Firstname,
 		userData.Lastname,
 		avatarURL,
-	).Scan(&userID)
+	).Scan(&userId)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -261,7 +261,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 		}
 	}
 	createdUser := &models.User{
-		ID:        userID,
+		Id:        userId,
 		Email:     userData.Email,
 		Username:  userData.Username,
 		Firstname: userData.Firstname,

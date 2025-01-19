@@ -8,12 +8,11 @@ type CreatePostRequest struct {
 }
 
 type DeletePostRequest struct {
-	PostID int `json:"postId" binding:"required"`
+	PostId int `json:"postId" binding:"required"`
 }
 
 type UpdatePostRequest struct {
-	PostID        int      `form:"postId" binding:"required"`
-	ContentText   string   `form:"contentText"`
-	DeletedImages []string `form:"deletedImages"`
-	NewImages     []string `form:"newImages"`
+	ContentText   string                  `form:"contentText"`
+	DeletedImages []string                `form:"deletedImages"`
+	NewImages     []*multipart.FileHeader `form:"newImages"`
 }

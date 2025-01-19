@@ -70,12 +70,36 @@ func (c *AppController) GetAllPosts(ctx *gin.Context) {
 }
 
 func (c *AppController) DeletePost(ctx *gin.Context) {
-	ctx.IndentedJSON(200, response.DefaultResponse{
-		Message: "Delete Post",
-	})
+	id := ctx.Param("id")
+	userId := ctx.MustGet("userId").(string)
+
+	res, code, errRes := c.AppService.DeletePost(id, userId)
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+		return
+	}
+
+	ctx.IndentedJSON(code, res)
 }
 func (c *AppController) UpdatePost(ctx *gin.Context) {
-	ctx.IndentedJSON(200, response.DefaultResponse{
-		Message: "Update Post",
-	})
+	id := ctx.Param("id")
+	userId := ctx.MustGet("userId").(string)
+
+	var req *request.UpdatePostRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
+			Message: "Invalid request body",
+			Detail:  err.Error(),
+		})
+		return
+	}
+
+	res, code, errRes := c.AppService.UpdatePost(id, userId, req)
+
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+		return
+	}
+
+	ctx.IndentedJSON(code, res)
 }

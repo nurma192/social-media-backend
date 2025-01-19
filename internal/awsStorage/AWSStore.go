@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"mime/multipart"
+	"strings"
 )
 
 func (a *AWSService) UploadFile(file multipart.File, filename, contentType string) (string, error) {
@@ -40,13 +41,16 @@ func (a *AWSService) GetFile(filename string) (*s3.GetObjectOutput, error) {
 	return out, nil
 }
 
-func (a *AWSService) DeleteFile(filename string) error {
+func (a *AWSService) DeleteFile(fileUrl string) error {
+	parts := strings.Split(fileUrl, "/")
+	filename := parts[len(parts)-1]
+
 	_, err := a.S3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
 		Bucket: &a.Bucket,
 		Key:    &filename,
 	})
 	if err != nil {
-		return fmt.Errorf("Error when try to delete file from  S3: %w", err)
+		return fmt.Errorf("Error when try to delete file from S3: %w", err)
 	}
 	return nil
 }

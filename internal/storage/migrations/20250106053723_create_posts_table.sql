@@ -22,7 +22,3 @@ CREATE TABLE postImages
 -- +goose StatementBegin
 DROP TABLE IF EXISTS posts;
 -- +goose StatementEnd
-
-SELECT p.id, p.user_id, p.content, p.created_at, pi.image_url FROM posts p
-LEFT JOIN postImages pi ON p.id = pi.post_id
-ORDER BY p.id p.created_at DESC
