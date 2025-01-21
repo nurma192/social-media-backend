@@ -27,7 +27,24 @@ func (s *DBService) GetUserByEmail(email string) (*models.User, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil // No user found, but no error
+			return nil, fmt.Errorf("no user found") // No user found, but no error
+		}
+		return nil, err
+	}
+	return user, nil
+}
+func (s *DBService) GetUserOnlyMainInfoById(id string) (*models.UserMainInfo, error) {
+	user := &models.UserMainInfo{}
+	err := s.DB.QueryRow(
+		"SELECT id, username, firstname, lastname, avatar_url FROM users WHERE id = $1",
+		id,
+	).Scan(
+		&user.Id, &user.Username, &user.Firstname, &user.Lastname, &user.AvatarURL,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("no user found") // No user found, but no error
 		}
 		return nil, err
 	}
@@ -43,7 +60,7 @@ func (s *DBService) IsUserExistByEmail(email string) (bool, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil // No user found
+			return false, fmt.Errorf("no user found")
 		}
 		return false, err
 	}

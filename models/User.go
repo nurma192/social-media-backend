@@ -18,3 +18,10 @@ type User struct {
 	Location    *string    `json:"location"`
 	CreatedAt   time.Time  `json:"created_at"`
 }
+type UserMainInfo struct {
+	Id        string  `json:"id"`
+	Username  string  `json:"username"`
+	Firstname string  `json:"firstname"`
+	Lastname  string  `json:"lastname"`
+	AvatarURL *string `json:"avatar_url"`
+}

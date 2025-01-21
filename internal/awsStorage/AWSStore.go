@@ -27,6 +27,7 @@ func (a *AWSService) UploadFile(file multipart.File, filename, contentType strin
 	}
 
 	fileURL := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", a.Bucket, filename)
+	fmt.Println("new uploaded file url:", fileURL)
 	return fileURL, nil
 }
 

@@ -34,6 +34,7 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 	}
 
 	createPostQuery := `INSERT INTO posts (user_id, content) VALUES ($1, $2) RETURNING id`
+	fmt.Println(createPostQuery, userId, post.ContentText)
 	var postID string
 	err := s.DBService.DB.QueryRow(createPostQuery, userId, post.ContentText).Scan(&postID)
 	if err != nil {
@@ -117,7 +118,7 @@ func (s *AppService) GetAllPosts(limit, page int) (*response.GetPostsResponse, i
 	}
 	defer rows.Close()
 
-	posts := make([]*models.Post, 0)
+	posts := make([]*models.PostWithUser, 0)
 	for rows.Next() {
 		var content, postID, userID string
 		var createdAt time.Time
@@ -136,10 +137,19 @@ func (s *AppService) GetAllPosts(limit, page int) (*response.GetPostsResponse, i
 				Detail:  err.Error(),
 			}
 		}
-		posts = append(posts, &models.Post{
+
+		user, err := s.DBService.GetUserOnlyMainInfoById(userID)
+		if err != nil {
+			return nil, http.StatusInternalServerError, &response.DefaultResponse{
+				Message: "Failed to get user from DB",
+				Detail:  err.Error(),
+			}
+		}
+
+		posts = append(posts, &models.PostWithUser{
 			Id:          postID,
 			ContentText: content,
-			UserId:      userID,
+			User:        user,
 			Images:      postImages,
 			CreatedAt:   createdAt,
 		})
