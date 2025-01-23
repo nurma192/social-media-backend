@@ -74,13 +74,11 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 	}, http.StatusCreated, nil
 }
 
-func (s *AppService) GetPostById(postID string) (*models.Post, int, *response.DefaultResponse) {
-	getPostQuery := `SELECT id, content, created_at FROM posts WHERE id = $1`
-	var post models.Post
-	err := s.DBService.DB.QueryRow(getPostQuery, postID).Scan(&post.Id, &post.ContentText, &post.CreatedAt)
+func (s *AppService) GetPostById(postID string) (*models.PostWithUser, int, *response.DefaultResponse) {
+	postWithUser, err := s.DBService.GetPostWithUserQuery(postID)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to get post from DB",
+			Message: "Failed to get post with user",
 			Detail:  err.Error(),
 		}
 	}
@@ -92,9 +90,9 @@ func (s *AppService) GetPostById(postID string) (*models.Post, int, *response.De
 			Detail:  err.Error(),
 		}
 	}
-	post.Images = postImages
+	postWithUser.Images = postImages
 
-	return &post, http.StatusOK, nil
+	return postWithUser, http.StatusOK, nil
 }
 
 func (s *AppService) GetAllPosts(limit, page int) (*response.GetPostsResponse, int, *response.DefaultResponse) {

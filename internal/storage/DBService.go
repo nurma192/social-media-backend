@@ -102,6 +102,37 @@ func (s *DBService) GetPostQuery(postId string) (*models.Post, error) {
 
 	return &post, nil
 }
+func (s *DBService) GetPostWithUserQuery(postId string) (*models.PostWithUser, error) {
+	query := `SELECT id, user_id, content, created_at FROM posts WHERE id = $1`
+	var post models.Post
+	err := s.DB.QueryRow(query, postId).Scan(&post.Id, &post.UserId, &post.ContentText, &post.CreatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("post not found")
+		}
+		return nil, err
+	}
+
+	user, err := s.GetUserOnlyMainInfoById(post.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	postImages, err := s.GetPostImages(postId)
+	if err != nil {
+		return nil, err
+	}
+	post.Images = postImages
+
+	postWithUser := &models.PostWithUser{
+		Id:          post.Id,
+		User:        user,
+		ContentText: post.ContentText,
+		CreatedAt:   post.CreatedAt,
+	}
+
+	return postWithUser, nil
+}
 
 func (s *DBService) GetPostsUserIdByPostId(postId string) (string, error) {
 	getPostQuery := `SELECT user_id FROM posts WHERE id = $1`
