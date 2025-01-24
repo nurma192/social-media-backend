@@ -10,7 +10,7 @@ import (
 	"social-media-back/internal/mail"
 	middleware "social-media-back/internal/middlware"
 	"social-media-back/internal/redisStorage"
-	"social-media-back/internal/storage"
+	"social-media-back/internal/storage/DatabaseService"
 	"social-media-back/internal/token"
 	"social-media-back/services"
 )
@@ -19,7 +19,7 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware())
 
-	databaseService := storage.NewDBService(db)
+	databaseService := DatabaseService.NewDBService(db)
 	redisService := redisStorage.NewRedisService(redisClient)
 	jwtService := token.NewJWTService(config)
 	awsService := awsStorage.InitAWS(&awsStorage.MyConfig{

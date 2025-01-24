@@ -74,8 +74,8 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 	}, http.StatusCreated, nil
 }
 
-func (s *AppService) GetPostById(postID string) (*models.PostWithAllInfo, int, *response.DefaultResponse) {
-	postWithUser, err := s.DBService.GetPostWithAllInfo(postID)
+func (s *AppService) GetPostById(postId, userId string) (*models.PostWithAllInfo, int, *response.DefaultResponse) {
+	postWithAllInfo, err := s.DBService.GetPostWithAllInfo(postId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Failed to get post with user",
@@ -83,16 +83,22 @@ func (s *AppService) GetPostById(postID string) (*models.PostWithAllInfo, int, *
 		}
 	}
 
-	postImages, err := s.DBService.GetPostImages(postID)
+	postImages, err := s.DBService.GetPostImages(postId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Failed to get post images from DB",
 			Detail:  err.Error(),
 		}
 	}
-	postWithUser.Images = postImages
+	postWithAllInfo.Images = postImages
 
-	return postWithUser, http.StatusOK, nil
+	isUserLikedPost, err := s.DBService.IsUserLikedPost(postId, userId)
+	if err != nil {
+		postWithAllInfo.LikedByUser = false
+	}
+	postWithAllInfo.LikedByUser = isUserLikedPost
+
+	return postWithAllInfo, http.StatusOK, nil
 }
 
 func (s *AppService) GetAllPosts(limit, page int) (*response.GetPostsResponse, int, *response.DefaultResponse) {

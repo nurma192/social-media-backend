@@ -36,8 +36,9 @@ func (c *AppController) CreatePost(ctx *gin.Context) {
 
 func (c *AppController) GetPost(ctx *gin.Context) {
 	id := ctx.Param("id")
+	userId := ctx.MustGet("userId").(string)
 
-	res, code, errRes := c.AppService.GetPostById(id)
+	res, code, errRes := c.AppService.GetPostById(id, userId)
 	if errRes != nil {
 		ctx.IndentedJSON(code, errRes)
 		return

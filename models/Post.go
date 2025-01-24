@@ -17,6 +17,7 @@ type PostWithAllInfo struct {
 	User          *UserMainInfo `json:"user"`
 	ContentText   string        `json:"content_text"`
 	Images        []Image       `json:"images"`
+	LikedByUser   bool          `json:"liked_by_user"`
 	LikesCount    int           `json:"likes_count"`
 	CommentsCount int           `json:"comments_count"`
 	CreatedAt     time.Time     `json:"created_at"`
