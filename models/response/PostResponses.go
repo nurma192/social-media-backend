@@ -9,10 +9,10 @@ type CreatePostResponse struct {
 }
 
 type GetPostsResponse struct {
-	Success bool                   `json:"success"`
-	Page    int                    `json:"page"`
-	Limit   int                    `json:"limit"`
-	Posts   []*models.PostWithUser `json:"posts"`
+	Success bool                      `json:"success"`
+	Page    int                       `json:"page"`
+	Limit   int                       `json:"limit"`
+	Posts   []*models.PostWithAllInfo `json:"posts"`
 }
 
 type UpdatePostResponse struct {

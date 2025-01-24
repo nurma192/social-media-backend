@@ -74,8 +74,8 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 	}, http.StatusCreated, nil
 }
 
-func (s *AppService) GetPostById(postID string) (*models.PostWithUser, int, *response.DefaultResponse) {
-	postWithUser, err := s.DBService.GetPostWithUserQuery(postID)
+func (s *AppService) GetPostById(postID string) (*models.PostWithAllInfo, int, *response.DefaultResponse) {
+	postWithUser, err := s.DBService.GetPostWithAllInfo(postID)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: "Failed to get post with user",
@@ -116,7 +116,7 @@ func (s *AppService) GetAllPosts(limit, page int) (*response.GetPostsResponse, i
 	}
 	defer rows.Close()
 
-	posts := make([]*models.PostWithUser, 0)
+	posts := make([]*models.PostWithAllInfo, 0)
 	for rows.Next() {
 		var content, postID, userID string
 		var createdAt time.Time
@@ -144,7 +144,7 @@ func (s *AppService) GetAllPosts(limit, page int) (*response.GetPostsResponse, i
 			}
 		}
 
-		posts = append(posts, &models.PostWithUser{
+		posts = append(posts, &models.PostWithAllInfo{
 			Id:          postID,
 			ContentText: content,
 			User:        user,

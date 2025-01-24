@@ -51,6 +51,31 @@ func (s *DBService) GetUserOnlyMainInfoById(id string) (*models.UserMainInfo, er
 	return user, nil
 }
 
+func (s *DBService) GetPostsLikesCount(id string) (int, error) {
+	var likes int
+	query := "SELECT COUNT(*) FROM likes WHERE id = $1"
+	err := s.DB.QueryRow(query, id).Scan(&likes)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return likes, nil
+}
+func (s *DBService) GetPostsCommentsCount(id string) (int, error) {
+	var commentsCount int
+	query := "SELECT COUNT(*) FROM comments WHERE id = $1"
+	err := s.DB.QueryRow(query, id).Scan(&commentsCount)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return commentsCount, nil
+}
+
 func (s *DBService) IsUserExistByEmail(email string) (bool, error) {
 	var userId int
 	err := s.DB.QueryRow(
@@ -102,7 +127,7 @@ func (s *DBService) GetPostQuery(postId string) (*models.Post, error) {
 
 	return &post, nil
 }
-func (s *DBService) GetPostWithUserQuery(postId string) (*models.PostWithUser, error) {
+func (s *DBService) GetPostWithAllInfo(postId string) (*models.PostWithAllInfo, error) {
 	query := `SELECT id, user_id, content, created_at FROM posts WHERE id = $1`
 	var post models.Post
 	err := s.DB.QueryRow(query, postId).Scan(&post.Id, &post.UserId, &post.ContentText, &post.CreatedAt)
@@ -124,11 +149,22 @@ func (s *DBService) GetPostWithUserQuery(postId string) (*models.PostWithUser, e
 	}
 	post.Images = postImages
 
-	postWithUser := &models.PostWithUser{
-		Id:          post.Id,
-		User:        user,
-		ContentText: post.ContentText,
-		CreatedAt:   post.CreatedAt,
+	likesCount, err := s.GetPostsLikesCount(postId)
+	if err != nil {
+		return nil, err
+	}
+	commentsCount, err := s.GetPostsCommentsCount(postId)
+	if err != nil {
+		return nil, err
+	}
+
+	postWithUser := &models.PostWithAllInfo{
+		Id:            post.Id,
+		User:          user,
+		ContentText:   post.ContentText,
+		LikesCount:    likesCount,
+		CommentsCount: commentsCount,
+		CreatedAt:     post.CreatedAt,
 	}
 
 	return postWithUser, nil
