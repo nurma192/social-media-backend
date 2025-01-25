@@ -7,19 +7,7 @@ import (
 	"social-media-back/models"
 )
 
-func (s *DBService) GetPostsLikesCount(id string) (int, error) {
-	var likes int
-	query := "SELECT COUNT(*) FROM likes WHERE id = $1"
-	err := s.DB.QueryRow(query, id).Scan(&likes)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
-		}
-		return 0, err
-	}
-	return likes, nil
-}
-func (s *DBService) GetPostsCommentsCount(id string) (int, error) {
+func (s *DBService) GetPostsCommentsCount(id int) (int, error) {
 	var commentsCount int
 	query := "SELECT COUNT(*) FROM comments WHERE id = $1"
 	err := s.DB.QueryRow(query, id).Scan(&commentsCount)
@@ -32,7 +20,7 @@ func (s *DBService) GetPostsCommentsCount(id string) (int, error) {
 	return commentsCount, nil
 }
 
-func (s *DBService) GetPostQuery(postId string) (*models.Post, error) {
+func (s *DBService) GetPostQuery(postId int) (*models.Post, error) {
 	query := `SELECT id, user_id, content, created_at FROM posts WHERE id = $1`
 	var post models.Post
 	err := s.DB.QueryRow(query, postId).Scan(&post.Id, &post.UserId, &post.ContentText, &post.CreatedAt)
@@ -51,7 +39,7 @@ func (s *DBService) GetPostQuery(postId string) (*models.Post, error) {
 
 	return &post, nil
 }
-func (s *DBService) GetPostWithAllInfo(postId string) (*models.PostWithAllInfo, error) {
+func (s *DBService) GetPostWithAllInfo(postId int) (*models.PostWithAllInfo, error) {
 	query := `SELECT id, user_id, content, created_at FROM posts WHERE id = $1`
 	var post models.Post
 	err := s.DB.QueryRow(query, postId).Scan(&post.Id, &post.UserId, &post.ContentText, &post.CreatedAt)
@@ -95,10 +83,6 @@ func (s *DBService) GetPostWithAllInfo(postId string) (*models.PostWithAllInfo, 
 	return postWithUser, nil
 }
 
-func (s *DBService) IsUserLikedPost(postId, userId string) (bool, error) {
-	return false, nil
-}
-
 func (s *DBService) GetPostsUserIdByPostId(postId string) (string, error) {
 	getPostQuery := `SELECT user_id FROM posts WHERE id = $1`
 	var userId string
@@ -113,7 +97,7 @@ func (s *DBService) GetPostsUserIdByPostId(postId string) (string, error) {
 	return userId, nil
 }
 
-func (s *DBService) GetPostImages(postId string) ([]models.Image, error) {
+func (s *DBService) GetPostImages(postId int) ([]models.Image, error) {
 	getPostImagesQuery := `SELECT id,image_url FROM postImages WHERE post_id = $1`
 	rows, err := s.DB.Query(getPostImagesQuery, postId)
 	if err != nil {

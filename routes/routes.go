@@ -58,5 +58,11 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 		postGroup.PUT("/:id", appController.UpdatePost)
 	}
 
+	likeGroup := router.Group("/like").Use(appService.RequireAuth)
+	{
+		likeGroup.POST("", appController.LikePost)
+		likeGroup.DELETE("", appController.UnlikePost)
+	}
+
 	return router
 }

@@ -35,7 +35,7 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 
 	createPostQuery := `INSERT INTO posts (user_id, content) VALUES ($1, $2) RETURNING id`
 	fmt.Println(createPostQuery, userId, post.ContentText)
-	var postID string
+	var postID int
 	err := s.DBService.DB.QueryRow(createPostQuery, userId, post.ContentText).Scan(&postID)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -74,7 +74,7 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 	}, http.StatusCreated, nil
 }
 
-func (s *AppService) GetPostById(postId, userId string) (*models.PostWithAllInfo, int, *response.DefaultResponse) {
+func (s *AppService) GetPostById(postId int, userId string) (*models.PostWithAllInfo, int, *response.DefaultResponse) {
 	postWithAllInfo, err := s.DBService.GetPostWithAllInfo(postId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -124,7 +124,8 @@ func (s *AppService) GetAllPosts(limit, page int) (*response.GetPostsResponse, i
 
 	posts := make([]*models.PostWithAllInfo, 0)
 	for rows.Next() {
-		var content, postID, userID string
+		var content, userID string
+		var postID int
 		var createdAt time.Time
 
 		err := rows.Scan(&postID, &content, &userID, &createdAt)
@@ -198,7 +199,7 @@ func (s *AppService) DeletePost(postID, userId string) (*response.DefaultRespons
 	}, http.StatusOK, nil
 }
 
-func (s *AppService) UpdatePost(postId, userId string, req *request.UpdatePostRequest) (*response.UpdatePostResponse, int, *response.DefaultResponse) {
+func (s *AppService) UpdatePost(postId int, userId string, req *request.UpdatePostRequest) (*response.UpdatePostResponse, int, *response.DefaultResponse) {
 	post, err := s.DBService.GetPostQuery(postId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{

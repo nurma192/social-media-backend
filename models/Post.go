@@ -3,7 +3,7 @@ package models
 import "time"
 
 type Post struct {
-	Id            string    `json:"id"`
+	Id            int       `json:"id"`
 	UserId        string    `json:"user_id"`
 	ContentText   string    `json:"content_text"`
 	Images        []Image   `json:"images"`
@@ -13,7 +13,7 @@ type Post struct {
 }
 
 type PostWithAllInfo struct {
-	Id            string        `json:"id"`
+	Id            int           `json:"id"`
 	User          *UserMainInfo `json:"user"`
 	ContentText   string        `json:"content_text"`
 	Images        []Image       `json:"images"`

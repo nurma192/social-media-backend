@@ -37,8 +37,16 @@ func (c *AppController) CreatePost(ctx *gin.Context) {
 func (c *AppController) GetPost(ctx *gin.Context) {
 	id := ctx.Param("id")
 	userId := ctx.MustGet("userId").(string)
+	postId, err := strconv.Atoi(id)
+	if err != nil {
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
+			Message: "Invalid post id",
+			Detail:  err.Error(),
+		})
+		return
+	}
 
-	res, code, errRes := c.AppService.GetPostById(id, userId)
+	res, code, errRes := c.AppService.GetPostById(postId, userId)
 	if errRes != nil {
 		ctx.IndentedJSON(code, errRes)
 		return
@@ -86,6 +94,15 @@ func (c *AppController) UpdatePost(ctx *gin.Context) {
 	id := ctx.Param("id")
 	userId := ctx.MustGet("userId").(string)
 
+	postId, err := strconv.Atoi(id)
+	if err != nil {
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
+			Message: "Invalid post id",
+			Detail:  err.Error(),
+		})
+		return
+	}
+
 	var req *request.UpdatePostRequest
 	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
@@ -95,7 +112,7 @@ func (c *AppController) UpdatePost(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.UpdatePost(id, userId, req)
+	res, code, errRes := c.AppService.UpdatePost(postId, userId, req)
 
 	if errRes != nil {
 		ctx.IndentedJSON(code, errRes)
