@@ -55,6 +55,7 @@ func (c *AppController) GetPost(ctx *gin.Context) {
 }
 
 func (c *AppController) GetAllPosts(ctx *gin.Context) {
+	userId := ctx.MustGet("userId").(string)
 	limitParam := ctx.DefaultQuery("limit", "10")
 	pageParam := ctx.DefaultQuery("page", "1")
 	limit, err := strconv.Atoi(limitParam)
@@ -69,7 +70,7 @@ func (c *AppController) GetAllPosts(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.GetAllPosts(limit, page)
+	res, code, errRes := c.AppService.GetAllPosts(limit, page, userId)
 
 	if errRes != nil {
 		ctx.IndentedJSON(code, errRes)

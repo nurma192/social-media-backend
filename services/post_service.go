@@ -101,63 +101,14 @@ func (s *AppService) GetPostById(postId int, userId string) (*models.PostWithAll
 	return postWithAllInfo, http.StatusOK, nil
 }
 
-func (s *AppService) GetAllPosts(limit, page int) (*response.GetPostsResponse, int, *response.DefaultResponse) {
-	offset := (page - 1) * limit
-	getAllPostsQuery :=
-		`SELECT
-			id,
-			content,
-			user_id,
-			created_at
-		FROM posts
-		ORDER BY created_at DESC 
-		LIMIT $1 OFFSET $2`
+func (s *AppService) GetAllPosts(limit, page int, userId string) (*response.GetPostsResponse, int, *response.DefaultResponse) {
+	posts, err := s.DBService.GetAllPostsWithAllInfo(limit, page, userId)
 
-	rows, err := s.DBService.DB.Query(getAllPostsQuery, limit, offset)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to get all posts from DB",
+			Message: "Failed to get all posts",
 			Detail:  err.Error(),
 		}
-	}
-	defer rows.Close()
-
-	posts := make([]*models.PostWithAllInfo, 0)
-	for rows.Next() {
-		var content, userID string
-		var postID int
-		var createdAt time.Time
-
-		err := rows.Scan(&postID, &content, &userID, &createdAt)
-		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to scan post data",
-				Detail:  err.Error(),
-			}
-		}
-		postImages, err := s.DBService.GetPostImages(postID)
-		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to get post images from DB",
-				Detail:  err.Error(),
-			}
-		}
-
-		user, err := s.DBService.GetUserOnlyMainInfoById(userID)
-		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to get user from DB",
-				Detail:  err.Error(),
-			}
-		}
-
-		posts = append(posts, &models.PostWithAllInfo{
-			Id:          postID,
-			ContentText: content,
-			User:        user,
-			Images:      postImages,
-			CreatedAt:   createdAt,
-		})
 	}
 
 	res := &response.GetPostsResponse{

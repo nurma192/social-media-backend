@@ -37,7 +37,7 @@ func (s *DBService) DeleteLikePost(postId int, userId string) error {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("post not liked by user")
 		}
-		return err
+		return fmt.Errorf("LikeActions.DeleteLikePost: %w", err)
 	}
 	return nil
 }
@@ -50,7 +50,7 @@ func (s *DBService) IsUserLikedPost(postId int, userId string) (bool, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
-		return false, err
+		return false, fmt.Errorf("LikeActions.IsUserLikedPost: %w", err)
 	}
 	return true, nil
 }
@@ -63,7 +63,7 @@ func (s *DBService) GetPostsLikesCount(postId int) (int, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		}
-		return 0, err
+		return 0, fmt.Errorf("LikeActions.GetPostsLikesCount: %w", err)
 	}
 	return likes, nil
 }

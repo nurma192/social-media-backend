@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"social-media-back/models"
+	"time"
 )
 
 func (s *DBService) GetPostsCommentsCount(id int) (int, error) {
@@ -15,7 +16,7 @@ func (s *DBService) GetPostsCommentsCount(id int) (int, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		}
-		return 0, err
+		return 0, fmt.Errorf("PostActions.GetPostsCommentsCount: %w", err)
 	}
 	return commentsCount, nil
 }
@@ -28,7 +29,7 @@ func (s *DBService) GetPostQuery(postId int) (*models.Post, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("post not found")
 		}
-		return nil, err
+		return nil, fmt.Errorf("PostActions.GetPostQuery: %w", err)
 	}
 
 	postImages, err := s.GetPostImages(postId)
@@ -47,7 +48,7 @@ func (s *DBService) GetPostWithAllInfo(postId int) (*models.PostWithAllInfo, err
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("post not found")
 		}
-		return nil, err
+		return nil, fmt.Errorf("PostActions.GetPostWithAllInfo: %w", err)
 	}
 
 	user, err := s.GetUserOnlyMainInfoById(post.UserId)
@@ -83,6 +84,74 @@ func (s *DBService) GetPostWithAllInfo(postId int) (*models.PostWithAllInfo, err
 	return postWithUser, nil
 }
 
+func (s *DBService) GetAllPostsWithAllInfo(limit, page int, userId string) ([]*models.PostWithAllInfo, error) {
+	offset := (page - 1) * limit
+	getAllPostsQuery :=
+		`SELECT
+			id,
+			content,
+			user_id,
+			created_at
+		FROM posts
+		ORDER BY created_at DESC 
+		LIMIT $1 OFFSET $2`
+	rows, err := s.DB.Query(getAllPostsQuery, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("PostActions.GetAllPostsWithAllInfo: %w", err)
+	}
+	defer rows.Close()
+
+	posts := make([]*models.PostWithAllInfo, 0)
+	for rows.Next() {
+		var content, userID string
+		var postId int
+		var createdAt time.Time
+
+		err := rows.Scan(&postId, &content, &userID, &createdAt)
+		if err != nil {
+			return nil, fmt.Errorf("PostActions.GetAllPostsWithAllInfo: %w", err)
+		}
+
+		postImages, err := s.GetPostImages(postId)
+		if err != nil {
+			return nil, err
+		}
+
+		likesCount, err := s.GetPostsLikesCount(postId)
+		if err != nil {
+			return nil, err
+		}
+
+		commentsCount, err := s.GetPostsCommentsCount(postId)
+		if err != nil {
+			return nil, err
+		}
+
+		isLikedByUser, err := s.IsUserLikedPost(postId, userId)
+		if err != nil {
+			return nil, err
+		}
+
+		user, err := s.GetUserOnlyMainInfoById(userID)
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, &models.PostWithAllInfo{
+			Id:            postId,
+			ContentText:   content,
+			User:          user,
+			LikedByUser:   isLikedByUser,
+			LikesCount:    likesCount,
+			CommentsCount: commentsCount,
+			Images:        postImages,
+			CreatedAt:     createdAt,
+		})
+	}
+
+	return posts, nil
+}
+
 func (s *DBService) GetPostsUserIdByPostId(postId string) (string, error) {
 	getPostQuery := `SELECT user_id FROM posts WHERE id = $1`
 	var userId string
@@ -91,7 +160,7 @@ func (s *DBService) GetPostsUserIdByPostId(postId string) (string, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", fmt.Errorf("post not found")
 		}
-		return "", err
+		return "", fmt.Errorf("PostActions.GetPostsUserIdByPostId: %w", err)
 	}
 
 	return userId, nil
@@ -104,7 +173,7 @@ func (s *DBService) GetPostImages(postId int) ([]models.Image, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []models.Image{}, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("PostActions.GetPostImages: %w", err)
 	}
 	defer rows.Close()
 
