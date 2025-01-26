@@ -3,7 +3,6 @@ package DatabaseService
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"social-media-back/models"
 )
 
@@ -19,7 +18,7 @@ func (s *DBService) GetUserByEmail(email string) (*models.User, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("no user found") // No user found, but no error
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -36,7 +35,7 @@ func (s *DBService) GetUserOnlyMainInfoById(id string) (*models.UserMainInfo, er
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("no user found") // No user found, but no error
+			return nil, nil // No user found, but no error
 		}
 		return nil, err
 	}
@@ -52,7 +51,7 @@ func (s *DBService) IsUserExistByEmail(email string) (bool, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, fmt.Errorf("no user found")
+			return false, nil
 		}
 		return false, err
 	}
