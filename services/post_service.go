@@ -6,10 +6,11 @@ import (
 	"social-media-back/models"
 	"social-media-back/models/request"
 	"social-media-back/models/response"
+	"strconv"
 	"time"
 )
 
-func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (*response.CreatePostResponse, int, *response.DefaultResponse) {
+func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*response.CreatePostResponse, int, *response.DefaultResponse) {
 	var uploadedImagesURLs []string
 
 	for index, fileHeader := range post.Images {
@@ -23,7 +24,12 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 		defer file.Close()
 
 		// todo create new unique filename
-		fileURL, err := s.AWSService.UploadFile(file, fileHeader.Filename+time.Now().Format("_2006-01-02_15:04:05")+fmt.Sprintf("%d", index)+userId, fileHeader.Header.Get("Content-Type"))
+		fileURL, err := s.AWSService.UploadFile(
+			file,
+			fileHeader.Filename+time.Now().Format("_2006-01-02_15:04:05")+fmt.Sprintf("%d", index)+strconv.Itoa(userId),
+			fileHeader.Header.Get("Content-Type"),
+		)
+
 		if err != nil {
 			return nil, http.StatusInternalServerError, &response.DefaultResponse{
 				Message: "Failed to upload image to Amazon S3",
@@ -45,7 +51,7 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 	}
 
 	createPostImagesQuery := `INSERT INTO postImages (post_id, image_url) VALUES ($1, $2) RETURNING id`
-	var imageID string
+	var imageID int
 	var images []models.Image
 	for _, imageURL := range uploadedImagesURLs {
 		err = s.DBService.DB.QueryRow(createPostImagesQuery, postID, imageURL).Scan(&imageID)
@@ -74,7 +80,7 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId string) (
 	}, http.StatusCreated, nil
 }
 
-func (s *AppService) GetPostById(postId int, userId string) (*models.PostWithAllInfo, int, *response.DefaultResponse) {
+func (s *AppService) GetPostById(postId, userId int) (*models.PostWithAllInfo, int, *response.DefaultResponse) {
 	postWithAllInfo, err := s.DBService.GetPostWithAllInfo(postId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -101,7 +107,7 @@ func (s *AppService) GetPostById(postId int, userId string) (*models.PostWithAll
 	return postWithAllInfo, http.StatusOK, nil
 }
 
-func (s *AppService) GetAllPosts(limit, page int, userId string) (*response.GetPostsResponse, int, *response.DefaultResponse) {
+func (s *AppService) GetAllPosts(limit, page, userId int) (*response.GetPostsResponse, int, *response.DefaultResponse) {
 	posts, err := s.DBService.GetAllPostsWithAllInfo(limit, page, userId)
 
 	if err != nil {
@@ -120,7 +126,7 @@ func (s *AppService) GetAllPosts(limit, page int, userId string) (*response.GetP
 	return res, http.StatusOK, nil
 }
 
-func (s *AppService) DeletePost(postID, userId string) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) DeletePost(postID, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
 	postsUserId, err := s.DBService.GetPostsUserIdByPostId(postID)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -150,7 +156,7 @@ func (s *AppService) DeletePost(postID, userId string) (*response.DefaultRespons
 	}, http.StatusOK, nil
 }
 
-func (s *AppService) UpdatePost(postId int, userId string, req *request.UpdatePostRequest) (*response.UpdatePostResponse, int, *response.DefaultResponse) {
+func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostRequest) (*response.UpdatePostResponse, int, *response.DefaultResponse) {
 	post, err := s.DBService.GetPostQuery(postId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -218,7 +224,7 @@ func (s *AppService) UpdatePost(postId int, userId string, req *request.UpdatePo
 		}
 		defer file.Close()
 
-		fileURL, err := s.AWSService.UploadFile(file, fileHeader.Filename+time.Now().Format("_2006-01-02_15:04:05")+fmt.Sprintf("%d", index)+userId, fileHeader.Header.Get("Content-Type"))
+		fileURL, err := s.AWSService.UploadFile(file, fileHeader.Filename+time.Now().Format("_2006-01-02_15:04:05")+fmt.Sprintf("%d", index)+strconv.Itoa(userId), fileHeader.Header.Get("Content-Type"))
 		uploadedImagesURLs = append(uploadedImagesURLs, fileURL)
 	}
 

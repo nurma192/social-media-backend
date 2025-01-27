@@ -24,7 +24,7 @@ func (s *DBService) GetUserByEmail(email string) (*models.User, error) {
 	}
 	return user, nil
 }
-func (s *DBService) GetUserOnlyMainInfoById(id string) (*models.UserMainInfo, error) {
+func (s *DBService) GetUserOnlyMainInfoById(id int) (*models.UserMainInfo, error) {
 	user := &models.UserMainInfo{}
 	err := s.DB.QueryRow(
 		"SELECT id, username, firstname, lastname, avatar_url FROM users WHERE id = $1",

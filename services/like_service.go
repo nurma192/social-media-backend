@@ -5,7 +5,7 @@ import (
 	"social-media-back/models/response"
 )
 
-func (s *AppService) LikePost(postId int, userId string) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) LikePost(postId, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
 	err := s.DBService.AddLikePost(postId, userId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -18,7 +18,7 @@ func (s *AppService) LikePost(postId int, userId string) (*response.DefaultRespo
 	}, http.StatusCreated, nil
 }
 
-func (s *AppService) UnlikePost(postId int, userId string) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) UnlikePost(postId, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
 	err := s.DBService.DeleteLikePost(postId, userId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{

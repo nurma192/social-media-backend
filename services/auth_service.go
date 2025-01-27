@@ -243,7 +243,7 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	avatarURL := avatarPath
 
 	query := `INSERT INTO users (email, username, password, firstname, lastname, avatar_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	var userId string
+	var userId int
 	err = s.DBService.DB.QueryRow(
 		query,
 		userData.Email,

@@ -5,7 +5,7 @@ import (
 )
 
 type User struct {
-	Id          string     `json:"id"`
+	Id          int        `json:"id"`
 	Email       string     `json:"email"`
 	Username    string     `json:"username"`
 	Firstname   string     `json:"firstname"`
@@ -19,7 +19,7 @@ type User struct {
 	CreatedAt   time.Time  `json:"created_at"`
 }
 type UserMainInfo struct {
-	Id        string  `json:"id"`
+	Id        int     `json:"id"`
 	Username  string  `json:"username"`
 	Firstname string  `json:"firstname"`
 	Lastname  string  `json:"lastname"`

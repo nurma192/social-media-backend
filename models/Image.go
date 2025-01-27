@@ -1,6 +1,6 @@
 package models
 
 type Image struct {
-	Id  string `json:"id"`
+	Id  int    `json:"id"`
 	Url string `json:"url"`
 }

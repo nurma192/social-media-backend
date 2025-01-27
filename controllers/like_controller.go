@@ -8,7 +8,7 @@ import (
 )
 
 func (c *AppController) LikePost(ctx *gin.Context) {
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
 	var req = request.LikePostRequest{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
@@ -28,7 +28,7 @@ func (c *AppController) LikePost(ctx *gin.Context) {
 }
 
 func (c *AppController) UnlikePost(ctx *gin.Context) {
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
 	var req = request.UnlikePostRequest{}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{

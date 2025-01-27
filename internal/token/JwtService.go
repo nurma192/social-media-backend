@@ -19,11 +19,11 @@ func NewJWTService(cfg *config.Config) *JWTService {
 
 type Claims struct {
 	Email  string `json:"email"`
-	UserId string `json:"userId"`
+	UserId int    `json:"userId"`
 	jwt.RegisteredClaims
 }
 
-func (j JWTService) GenerateAccessToken(email, userId string) (string, error) {
+func (j JWTService) GenerateAccessToken(email string, userId int) (string, error) {
 	claims := &Claims{
 		Email:  email,
 		UserId: userId,

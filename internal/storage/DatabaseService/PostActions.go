@@ -71,7 +71,7 @@ func (s *DBService) GetPostWithAllInfo(postId int) (*models.PostWithAllInfo, err
 	return postWithUser, nil
 }
 
-func (s *DBService) GetAllPostsWithAllInfo(limit, page int, userId string) ([]*models.PostWithAllInfo, error) {
+func (s *DBService) GetAllPostsWithAllInfo(limit, page, userId int) ([]*models.PostWithAllInfo, error) {
 	offset := (page - 1) * limit
 	getAllPostsQuery :=
 		`SELECT
@@ -90,8 +90,8 @@ func (s *DBService) GetAllPostsWithAllInfo(limit, page int, userId string) ([]*m
 
 	posts := make([]*models.PostWithAllInfo, 0)
 	for rows.Next() {
-		var content, userID string
-		var postId int
+		var content string
+		var postId, userID int
 		var createdAt time.Time
 
 		err := rows.Scan(&postId, &content, &userID, &createdAt)
@@ -139,15 +139,15 @@ func (s *DBService) GetAllPostsWithAllInfo(limit, page int, userId string) ([]*m
 	return posts, nil
 }
 
-func (s *DBService) GetPostsUserIdByPostId(postId string) (string, error) {
+func (s *DBService) GetPostsUserIdByPostId(postId int) (int, error) {
 	getPostQuery := `SELECT user_id FROM posts WHERE id = $1`
-	var userId string
+	var userId int
 	err := s.DB.QueryRow(getPostQuery, postId).Scan(&userId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", fmt.Errorf("post not found")
+			return -1, fmt.Errorf("post not found")
 		}
-		return "", fmt.Errorf("PostActions.GetPostsUserIdByPostId: %w", err)
+		return -1, fmt.Errorf("PostActions.GetPostsUserIdByPostId: %w", err)
 	}
 
 	return userId, nil

@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func (s *DBService) AddLikePost(postId int, userId string) error {
+func (s *DBService) AddLikePost(postId, userId int) error {
 	likedByUser, err := s.IsUserLikedPost(postId, userId)
 	if err != nil {
 		return err
@@ -22,7 +22,7 @@ func (s *DBService) AddLikePost(postId int, userId string) error {
 	return nil
 }
 
-func (s *DBService) DeleteLikePost(postId int, userId string) error {
+func (s *DBService) DeleteLikePost(postId, userId int) error {
 	likedByUser, err := s.IsUserLikedPost(postId, userId)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (s *DBService) DeleteLikePost(postId int, userId string) error {
 	return nil
 }
 
-func (s *DBService) IsUserLikedPost(postId int, userId string) (bool, error) {
+func (s *DBService) IsUserLikedPost(postId, userId int) (bool, error) {
 	query := `SELECT 1 FROM likes WHERE post_id = $1 AND user_id = $2`
 	var exists int
 	err := s.DB.QueryRow(query, postId, userId).Scan(&exists)

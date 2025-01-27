@@ -3,16 +3,28 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"social-media-back/models/request"
 	"social-media-back/models/response"
 	"strconv"
 )
 
 func (c *AppController) CreatePostComment(ctx *gin.Context) {
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
+	var req request.CreateCommentRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
+			Message: "invalid request body",
+			Detail:  err.Error(),
+		})
+	}
 
-	ctx.IndentedJSON(http.StatusOK, gin.H{
-		"message": "CreateComment" + userId,
-	})
+	res, code, errRes := c.AppService.CreatePostComment(&req, userId)
+
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+	}
+	ctx.IndentedJSON(code, res)
 
 }
 func (c *AppController) DeletePostComment(ctx *gin.Context) {

@@ -9,7 +9,7 @@ import (
 )
 
 func (c *AppController) CreatePost(ctx *gin.Context) {
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
 	var req request.CreatePostRequest
 
 	if err := ctx.ShouldBind(&req); err != nil {
@@ -36,7 +36,7 @@ func (c *AppController) CreatePost(ctx *gin.Context) {
 
 func (c *AppController) GetPost(ctx *gin.Context) {
 	id := ctx.Param("id")
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
 	postId, err := strconv.Atoi(id)
 	if err != nil {
 		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
@@ -55,7 +55,7 @@ func (c *AppController) GetPost(ctx *gin.Context) {
 }
 
 func (c *AppController) GetAllPosts(ctx *gin.Context) {
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
 	limitParam := ctx.DefaultQuery("limit", "10")
 	pageParam := ctx.DefaultQuery("page", "1")
 	limit, err := strconv.Atoi(limitParam)
@@ -81,9 +81,17 @@ func (c *AppController) GetAllPosts(ctx *gin.Context) {
 
 func (c *AppController) DeletePost(ctx *gin.Context) {
 	id := ctx.Param("id")
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
+	postId, err := strconv.Atoi(id)
+	if err != nil {
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
+			Message: "Invalid post id",
+			Detail:  err.Error(),
+		})
+		return
+	}
 
-	res, code, errRes := c.AppService.DeletePost(id, userId)
+	res, code, errRes := c.AppService.DeletePost(postId, userId)
 	if errRes != nil {
 		ctx.IndentedJSON(code, errRes)
 		return
@@ -93,7 +101,7 @@ func (c *AppController) DeletePost(ctx *gin.Context) {
 }
 func (c *AppController) UpdatePost(ctx *gin.Context) {
 	id := ctx.Param("id")
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
 
 	postId, err := strconv.Atoi(id)
 	if err != nil {

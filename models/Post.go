@@ -4,7 +4,7 @@ import "time"
 
 type Post struct {
 	Id            int       `json:"id"`
-	UserId        string    `json:"user_id"`
+	UserId        int       `json:"user_id"`
 	ContentText   string    `json:"content_text"`
 	Images        []Image   `json:"images"`
 	LikesCount    int       `json:"likes_count"`
