@@ -8,27 +8,37 @@ import (
 	"social-media-back/models"
 )
 
-func (s *DBService) CreatePostComment(postId int) error {
+func (s *DBService) CreatePostComment(content string, postId, userId int) error {
 	query := "INSERT INTO comments (content, user_id, post_id) VALUES ($1, $2, $3)"
-	_, err := s.DB.Exec(query, postId, postId, postId)
+	_, err := s.DB.Exec(query, content, userId, postId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (s *DBService) DeletePostComment(commentId int) error {
-	query := "DELETE FROM comments WHERE id = $1"
-	_, err := s.DB.Exec(query, commentId)
+func (s *DBService) DeletePostComment(commentId, userId int) error {
+	query := "DELETE FROM comments WHERE id = $1 AND user_id = $2"
+	_, err := s.DB.Exec(query, commentId, userId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (s *DBService) UpdatePostComment(commentId int, content string) error {
-	query := "UPDATE comments SET content = $1 WHERE id = $2"
-	_, err := s.DB.Exec(query, commentId, content)
+func (s *DBService) UpdatePostComment(commentId int, content string, userId int) error {
+	query := "UPDATE comments SET content = $1 WHERE id = $2 AND user_id = $3"
+	result, err := s.DB.Exec(query, content, commentId, userId)
+
 	if err != nil {
 		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("comment not found or user does not have permission")
 	}
 	return nil
 }

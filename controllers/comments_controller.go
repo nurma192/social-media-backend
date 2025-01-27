@@ -11,8 +11,8 @@ import (
 func (c *AppController) CreatePostComment(ctx *gin.Context) {
 	userId := ctx.MustGet("userId").(int)
 	var req request.CreateCommentRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
 			Message: "invalid request body",
 			Detail:  err.Error(),
@@ -23,28 +23,52 @@ func (c *AppController) CreatePostComment(ctx *gin.Context) {
 
 	if errRes != nil {
 		ctx.IndentedJSON(code, errRes)
+		return
 	}
 	ctx.IndentedJSON(code, res)
 
 }
 func (c *AppController) DeletePostComment(ctx *gin.Context) {
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
+	var req request.DeleteCommentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
+			Message: "invalid request body",
+			Detail:  err.Error(),
+		})
+	}
 
-	ctx.IndentedJSON(http.StatusOK, gin.H{
-		"message": "DeleteComment" + userId,
-	})
+	res, code, errRes := c.AppService.DeletePostComment(&req, userId)
+
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+		return
+	}
+	ctx.IndentedJSON(code, res)
 
 }
 func (c *AppController) UpdatePostComment(ctx *gin.Context) {
-	userId := ctx.MustGet("userId").(string)
+	userId := ctx.MustGet("userId").(int)
 
-	ctx.IndentedJSON(http.StatusOK, gin.H{
-		"message": "UpdateComment" + userId,
-	})
+	var req request.UpdateCommentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
+			Message: "invalid request body",
+			Detail:  err.Error(),
+		})
+		return
+	}
+
+	res, code, errRes := c.AppService.UpdatePostComment(&req, userId)
+
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+		return
+	}
+	ctx.IndentedJSON(code, res)
 
 }
 func (c *AppController) GetPostsComments(ctx *gin.Context) {
-	//userId := ctx.MustGet("userId").(string)
 	id := ctx.Param("id")
 	postId, err := strconv.Atoi(id)
 	if err != nil {
