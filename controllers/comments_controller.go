@@ -3,22 +3,9 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"social-media-back/models/response"
+	"strconv"
 )
-
-type CreateCommentRequest struct {
-	Content string `json:"content"`
-	PostId  string `json:"postId"`
-}
-type DeleteCommentRequest struct {
-	CommentId string `json:"commentId"`
-}
-type UpdateCommentRequest struct {
-	CommentId string `json:"commentId"`
-	Content   string `json:"content"`
-}
-type GetPostsCommentsRequest struct {
-	PostId string `json:"postId"`
-}
 
 func (c *AppController) CreatePostComment(ctx *gin.Context) {
 	userId := ctx.MustGet("userId").(string)
@@ -45,11 +32,35 @@ func (c *AppController) UpdatePostComment(ctx *gin.Context) {
 
 }
 func (c *AppController) GetPostsComments(ctx *gin.Context) {
-	userId := ctx.MustGet("userId").(string)
-	postId := ctx.Param("id")
+	//userId := ctx.MustGet("userId").(string)
+	id := ctx.Param("id")
+	postId, err := strconv.Atoi(id)
+	if err != nil {
+		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
+			Message: "Invalid post id",
+			Detail:  err.Error(),
+		})
+		return
+	}
+	limitParam := ctx.DefaultQuery("limit", "10")
+	pageParam := ctx.DefaultQuery("page", "1")
+	limit, err := strconv.Atoi(limitParam)
+	if err != nil || limit <= 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Limit must be a positive integer"})
+		return
+	}
 
-	ctx.IndentedJSON(http.StatusOK, gin.H{
-		"message": "GetPostsComments" + userId + " " + postId,
-	})
+	page, err := strconv.Atoi(pageParam)
+	if err != nil || page <= 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Page must be a positive integer"})
+		return
+	}
 
+	res, code, errRes := c.AppService.GetPostComments(postId, limit, page)
+	if errRes != nil {
+		ctx.IndentedJSON(code, errRes)
+		return
+	}
+
+	ctx.IndentedJSON(code, res)
 }

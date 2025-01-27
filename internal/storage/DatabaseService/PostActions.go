@@ -8,19 +8,6 @@ import (
 	"time"
 )
 
-func (s *DBService) GetPostsCommentsCount(id int) (int, error) {
-	var commentsCount int
-	query := "SELECT COUNT(*) FROM comments WHERE id = $1"
-	err := s.DB.QueryRow(query, id).Scan(&commentsCount)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
-		}
-		return 0, fmt.Errorf("PostActions.GetPostsCommentsCount: %w", err)
-	}
-	return commentsCount, nil
-}
-
 func (s *DBService) GetPostQuery(postId int) (*models.Post, error) {
 	query := `SELECT id, user_id, content, created_at FROM posts WHERE id = $1`
 	var post models.Post
