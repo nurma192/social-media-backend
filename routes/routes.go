@@ -64,5 +64,13 @@ func SetupRoutes(config *config.Config, db *sql.DB, redisClient *redis.Client) *
 		likeGroup.DELETE("", appController.UnlikePost)
 	}
 
+	commentGroup := router.Group("/postComments").Use(appService.RequireAuth)
+	{
+		commentGroup.POST("", appController.CreatePostComment)
+		commentGroup.DELETE("", appController.DeletePostComment)
+		commentGroup.PUT("", appController.UpdatePostComment)
+		commentGroup.GET("/:id", appController.GetPostsComments)
+	}
+
 	return router
 }
