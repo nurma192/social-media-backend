@@ -80,7 +80,7 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*re
 	}, http.StatusCreated, nil
 }
 
-func (s *AppService) GetPostById(postId, userId int) (*models.PostWithAllInfo, int, *response.DefaultResponse) {
+func (s *AppService) GetPostById(postId, userId int) (*response.GetPostByIdResponse, int, *response.DefaultResponse) {
 	postWithAllInfo, err := s.DBService.GetPostWithAllInfo(postId)
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -104,7 +104,10 @@ func (s *AppService) GetPostById(postId, userId int) (*models.PostWithAllInfo, i
 	}
 	postWithAllInfo.LikedByUser = isUserLikedPost
 
-	return postWithAllInfo, http.StatusOK, nil
+	return &response.GetPostByIdResponse{
+		Success: true,
+		Post:    postWithAllInfo,
+	}, http.StatusOK, nil
 }
 
 func (s *AppService) GetAllPosts(limit, page, userId int) (*response.GetPostsResponse, int, *response.DefaultResponse) {

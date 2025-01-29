@@ -16,6 +16,11 @@ type GetPostsResponse struct {
 	Posts      []*models.PostWithAllInfo `json:"posts"`
 }
 
+type GetPostByIdResponse struct {
+	Success bool                    `json:"success"`
+	Post    *models.PostWithAllInfo `json:"post"`
+}
+
 type UpdatePostResponse struct {
 	Success bool         `json:"success"`
 	Message string       `json:"message"`
