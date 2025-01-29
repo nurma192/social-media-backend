@@ -108,7 +108,7 @@ func (s *AppService) GetPostById(postId, userId int) (*models.PostWithAllInfo, i
 }
 
 func (s *AppService) GetAllPosts(limit, page, userId int) (*response.GetPostsResponse, int, *response.DefaultResponse) {
-	posts, err := s.DBService.GetAllPostsWithAllInfo(limit, page, userId)
+	posts, totalPages, err := s.DBService.GetAllPostsWithAllInfo(limit, page, userId)
 
 	if err != nil {
 		return nil, http.StatusInternalServerError, &response.DefaultResponse{
@@ -118,10 +118,11 @@ func (s *AppService) GetAllPosts(limit, page, userId int) (*response.GetPostsRes
 	}
 
 	res := &response.GetPostsResponse{
-		Posts:   posts,
-		Success: true,
-		Page:    page,
-		Limit:   limit,
+		Posts:      posts,
+		Success:    true,
+		Page:       page,
+		TotalPages: totalPages,
+		Limit:      limit,
 	}
 	return res, http.StatusOK, nil
 }

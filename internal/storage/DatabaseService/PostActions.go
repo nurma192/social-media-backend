@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"social-media-back/models"
 	"time"
 )
@@ -71,7 +72,7 @@ func (s *DBService) GetPostWithAllInfo(postId int) (*models.PostWithAllInfo, err
 	return postWithUser, nil
 }
 
-func (s *DBService) GetAllPostsWithAllInfo(limit, page, userId int) ([]*models.PostWithAllInfo, error) {
+func (s *DBService) GetAllPostsWithAllInfo(limit, page, userId int) ([]*models.PostWithAllInfo, int, error) {
 	offset := (page - 1) * limit
 	getAllPostsQuery :=
 		`SELECT
@@ -84,7 +85,7 @@ func (s *DBService) GetAllPostsWithAllInfo(limit, page, userId int) ([]*models.P
 		LIMIT $1 OFFSET $2`
 	rows, err := s.DB.Query(getAllPostsQuery, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("PostActions.GetAllPostsWithAllInfo: %w", err)
+		return nil, -1, fmt.Errorf("PostActions.GetAllPostsWithAllInfo: %w", err)
 	}
 	defer rows.Close()
 
@@ -96,32 +97,32 @@ func (s *DBService) GetAllPostsWithAllInfo(limit, page, userId int) ([]*models.P
 
 		err := rows.Scan(&postId, &content, &userID, &createdAt)
 		if err != nil {
-			return nil, fmt.Errorf("PostActions.GetAllPostsWithAllInfo: %w", err)
+			return nil, -1, fmt.Errorf("PostActions.GetAllPostsWithAllInfo: %w", err)
 		}
 
 		postImages, err := s.GetPostImages(postId)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
 
 		likesCount, err := s.GetPostsLikesCount(postId)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
 
 		commentsCount, err := s.GetPostsCommentsCount(postId)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
 
 		isLikedByUser, err := s.IsUserLikedPost(postId, userId)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
 
 		user, err := s.GetUserOnlyMainInfoById(userID)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
 
 		posts = append(posts, &models.PostWithAllInfo{
@@ -135,8 +136,15 @@ func (s *DBService) GetAllPostsWithAllInfo(limit, page, userId int) ([]*models.P
 			CreatedAt:     createdAt,
 		})
 	}
+	var totalPosts int
+	countQuery := `SELECT COUNT(*) FROM posts`
+	err = s.DB.QueryRow(countQuery).Scan(&totalPosts)
+	if err != nil {
+		return nil, -1, fmt.Errorf("Ошибка при получении количества постов: %w", err)
+	}
+	totalPages := int(math.Ceil(float64(totalPosts) / float64(limit)))
 
-	return posts, nil
+	return posts, totalPages, nil
 }
 
 func (s *DBService) GetPostsUserIdByPostId(postId int) (int, error) {
