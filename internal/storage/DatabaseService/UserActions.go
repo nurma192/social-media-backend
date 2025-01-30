@@ -35,7 +35,7 @@ func (s *DBService) GetUserOnlyMainInfoById(id int) (*models.UserMainInfo, error
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil // No user found, but no error
+			return nil, nil
 		}
 		return nil, err
 	}

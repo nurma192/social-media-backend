@@ -84,6 +84,9 @@ func (s *DBService) GetAllPostsWithAllInfo(limit, page, userId int) ([]*models.P
 		LIMIT $1 OFFSET $2`
 	rows, err := s.DB.Query(getAllPostsQuery, limit, offset)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, 0, nil
+		}
 		return nil, -1, fmt.Errorf("PostActions.GetAllPostsWithAllInfo: %w", err)
 	}
 	defer rows.Close()
@@ -152,7 +155,7 @@ func (s *DBService) GetPostsUserIdByPostId(postId int) (int, error) {
 	err := s.DB.QueryRow(getPostQuery, postId).Scan(&userId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return -1, fmt.Errorf("post not found")
+			return -1, nil
 		}
 		return -1, fmt.Errorf("PostActions.GetPostsUserIdByPostId: %w", err)
 	}

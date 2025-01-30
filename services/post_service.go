@@ -10,16 +10,15 @@ import (
 	"time"
 )
 
-func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*response.CreatePostResponse, int, *response.DefaultResponse) {
+func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*response.Response, int) {
 	var uploadedImagesURLs []string
 
 	for index, fileHeader := range post.Images {
 		file, err := fileHeader.Open()
 		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to open image",
-				Detail:  err.Error(),
-			}
+			return &response.Response{
+				Error: err.Error(),
+			}, http.StatusInternalServerError
 		}
 		defer file.Close()
 
@@ -31,10 +30,9 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*re
 		)
 
 		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to upload image to Amazon S3",
-				Detail:  err.Error(),
-			}
+			return &response.Response{
+				Error: err.Error(),
+			}, http.StatusInternalServerError
 		}
 		uploadedImagesURLs = append(uploadedImagesURLs, fileURL)
 	}
@@ -44,10 +42,9 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*re
 	var postID int
 	err := s.DBService.DB.QueryRow(createPostQuery, userId, post.ContentText).Scan(&postID)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to create post on DB",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
 	createPostImagesQuery := `INSERT INTO postImages (post_id, image_url) VALUES ($1, $2) RETURNING id`
@@ -56,10 +53,9 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*re
 	for _, imageURL := range uploadedImagesURLs {
 		err = s.DBService.DB.QueryRow(createPostImagesQuery, postID, imageURL).Scan(&imageID)
 		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to create post images on DB",
-				Detail:  err.Error(),
-			}
+			return &response.Response{
+				Error: err.Error(),
+			}, http.StatusInternalServerError
 		}
 		images = append(images, models.Image{
 			Id:  imageID,
@@ -67,34 +63,31 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*re
 		})
 	}
 
-	return &response.CreatePostResponse{
-		Message: "Post created successfully",
-		Success: true,
-		Post: &models.Post{
+	return &response.Response{
+		Result: &models.Post{
 			Id:          postID,
 			ContentText: post.ContentText,
 			Images:      images,
 			UserId:      userId,
 			CreatedAt:   time.Now(),
 		},
-	}, http.StatusCreated, nil
+		Message: "Post created",
+	}, http.StatusCreated
 }
 
-func (s *AppService) GetPostById(postId, userId int) (*response.GetPostByIdResponse, int, *response.DefaultResponse) {
+func (s *AppService) GetPostById(postId, userId int) (*response.Response, int) {
 	postWithAllInfo, err := s.DBService.GetPostWithAllInfo(postId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to get post with user",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
 	postImages, err := s.DBService.GetPostImages(postId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to get post images from DB",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 	postWithAllInfo.Images = postImages
 
@@ -104,81 +97,74 @@ func (s *AppService) GetPostById(postId, userId int) (*response.GetPostByIdRespo
 	}
 	postWithAllInfo.LikedByUser = isUserLikedPost
 
-	return &response.GetPostByIdResponse{
-		Success: true,
-		Post:    postWithAllInfo,
-	}, http.StatusOK, nil
+	return &response.Response{
+		Result: postWithAllInfo,
+	}, http.StatusOK
 }
 
-func (s *AppService) GetAllPosts(limit, page, userId int) (*response.GetPostsResponse, int, *response.DefaultResponse) {
+func (s *AppService) GetAllPosts(limit, page, userId int) (*response.PaginationResponse, int) {
 	posts, totalPages, err := s.DBService.GetAllPostsWithAllInfo(limit, page, userId)
 
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to get all posts",
-			Detail:  err.Error(),
-		}
+		return &response.PaginationResponse{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
-	res := &response.GetPostsResponse{
-		Posts:      posts,
-		Success:    true,
+	res := &response.PaginationResponse{
+		Result:     posts,
 		Page:       page,
 		TotalPages: totalPages,
 		Limit:      limit,
 	}
-	return res, http.StatusOK, nil
+	return res, http.StatusOK
 }
 
-func (s *AppService) DeletePost(postID, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) DeletePost(postID, userId int) (*response.Response, int) {
 	postsUserId, err := s.DBService.GetPostsUserIdByPostId(postID)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: err.Error(),
-			Detail:  "Failed to get post user id from DB",
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
 	if postsUserId != userId {
-		return nil, http.StatusForbidden, &response.DefaultResponse{
-			Message: "You are not allowed to delete this post",
-		}
+		return &response.Response{
+			Error: "You are not allowed to delete this post",
+		}, http.StatusForbidden
 	}
 
 	deletePostQuery := `DELETE FROM posts WHERE id = $1`
 	_, err = s.DBService.DB.Exec(deletePostQuery, postID)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to delete post from DB",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
-	return &response.DefaultResponse{
+	return &response.Response{
 		Message: "Post deleted successfully",
-		Success: true,
-	}, http.StatusOK, nil
+	}, http.StatusOK
 }
 
-func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostRequest) (*response.UpdatePostResponse, int, *response.DefaultResponse) {
+func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostRequest) (*response.Response, int) {
 	post, err := s.DBService.GetPostQuery(postId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: err.Error(),
-			Detail:  "Failed to get post from DB",
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
 	if len(post.Images)-len(req.DeletedImagesId)+len(req.NewImages) > 5 {
-		return nil, http.StatusBadRequest, &response.DefaultResponse{
-			Message: "You can't add more than 5 images to post",
-		}
+		return &response.Response{
+			Error: "You can't add more than 5 images to post",
+		}, http.StatusBadRequest
 	}
 
 	if post.UserId != userId {
-		return nil, http.StatusForbidden, &response.DefaultResponse{
-			Message: "You are not allowed to update this post",
-		}
+		return &response.Response{
+			Error: "You are not allowed to update this post",
+		}, http.StatusForbidden
 	}
 
 	for _, deleteImageId := range req.DeletedImagesId {
@@ -190,17 +176,16 @@ func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostReque
 			}
 		}
 		if deleteImageURL == nil {
-			return nil, http.StatusForbidden, &response.DefaultResponse{
-				Message: "You are not allowed to delete this image",
-			}
+			return &response.Response{
+				Error: "You are not allowed to delete this image",
+			}, http.StatusForbidden
 		}
 
 		err := s.AWSService.DeleteFile(*deleteImageURL)
 		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to delete image from Amazon S3",
-				Detail:  err.Error(),
-			}
+			return &response.Response{
+				Error: err.Error(),
+			}, http.StatusInternalServerError
 		}
 	}
 
@@ -209,10 +194,9 @@ func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostReque
 	for _, imageId := range req.DeletedImagesId {
 		_, err = s.DBService.DB.Exec(deleteImageQuery, imageId)
 		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to delete image from DB",
-				Detail:  err.Error(),
-			}
+			return &response.Response{
+				Error: err.Error(),
+			}, http.StatusInternalServerError
 		}
 	}
 
@@ -221,10 +205,9 @@ func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostReque
 	for index, fileHeader := range req.NewImages {
 		file, err := fileHeader.Open()
 		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to open image",
-				Detail:  err.Error(),
-			}
+			return &response.Response{
+				Error: err.Error(),
+			}, http.StatusInternalServerError
 		}
 		defer file.Close()
 
@@ -237,10 +220,9 @@ func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostReque
 	for _, imageURL := range uploadedImagesURLs {
 		_, err := s.DBService.DB.Exec(addNewPostImagesQuery, postId, imageURL)
 		if err != nil {
-			return nil, http.StatusInternalServerError, &response.DefaultResponse{
-				Message: "Failed to add new post images to DB",
-				Detail:  err.Error(),
-			}
+			return &response.Response{
+				Error: err.Error(),
+			}, http.StatusInternalServerError
 		}
 	}
 
@@ -248,17 +230,15 @@ func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostReque
 	updatePostQuery := `UPDATE posts SET content = $1 WHERE id = $2`
 	_, err = s.DBService.DB.Exec(updatePostQuery, req.ContentText, postId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to update post on DB",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
 	post, err = s.DBService.GetPostQuery(postId)
 
-	return &response.UpdatePostResponse{
-		Success: true,
+	return &response.Response{
 		Message: "Post updated successfully",
-		Post:    post,
-	}, http.StatusOK, nil
+		Result:  post,
+	}, http.StatusOK
 }

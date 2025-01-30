@@ -25,12 +25,7 @@ func (c *AppController) CreatePost(ctx *gin.Context) {
 		})
 		return
 	}
-	res, code, errRes := c.AppService.CreatePost(req, userId)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
-
+	res, code := c.AppService.CreatePost(req, userId)
 	ctx.IndentedJSON(code, res)
 }
 
@@ -46,11 +41,7 @@ func (c *AppController) GetPost(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.GetPostById(postId, userId)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code := c.AppService.GetPostById(postId, userId)
 	ctx.IndentedJSON(code, res)
 }
 
@@ -70,12 +61,7 @@ func (c *AppController) GetAllPosts(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.GetAllPosts(limit, page, userId)
-
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code := c.AppService.GetAllPosts(limit, page, userId)
 	ctx.IndentedJSON(code, res)
 }
 
@@ -91,11 +77,7 @@ func (c *AppController) DeletePost(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.DeletePost(postId, userId)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code := c.AppService.DeletePost(postId, userId)
 
 	ctx.IndentedJSON(code, res)
 }
@@ -121,12 +103,7 @@ func (c *AppController) UpdatePost(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.UpdatePost(postId, userId, req)
-
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code := c.AppService.UpdatePost(postId, userId, req)
 
 	ctx.IndentedJSON(code, res)
 }

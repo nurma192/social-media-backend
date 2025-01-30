@@ -8,14 +8,6 @@ type CreatePostResponse struct {
 	Post    *models.Post `json:"post"`
 }
 
-type GetPostsResponse struct {
-	Success    bool                      `json:"success"`
-	Page       int                       `json:"page"`
-	TotalPages int                       `json:"totalPages"`
-	Limit      int                       `json:"limit"`
-	Posts      []*models.PostWithAllInfo `json:"posts"`
-}
-
 type GetPostByIdResponse struct {
 	Success bool                    `json:"success"`
 	Post    *models.PostWithAllInfo `json:"post"`

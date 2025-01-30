@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// pgx
 func (s *DBService) AddLikePost(postId, userId int) error {
 	likedByUser, err := s.IsUserLikedPost(postId, userId)
 	if err != nil {
@@ -23,22 +24,17 @@ func (s *DBService) AddLikePost(postId, userId int) error {
 }
 
 func (s *DBService) DeleteLikePost(postId, userId int) error {
-	likedByUser, err := s.IsUserLikedPost(postId, userId)
-	if err != nil {
-		return err
-	}
-	if !likedByUser {
-		return fmt.Errorf("post liked by user")
-	}
-
 	deletePostQuery := `DELETE FROM likes WHERE post_id = $1 AND user_id = $2`
-	_, err = s.DB.Exec(deletePostQuery, postId, userId)
+	result, err := s.DB.Exec(deletePostQuery, postId, userId)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("post not liked by user")
-		}
 		return fmt.Errorf("LikeActions.DeleteLikePost: %w", err)
 	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("post not liked by user")
+	}
+
 	return nil
 }
 
