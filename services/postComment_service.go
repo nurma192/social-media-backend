@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"net/http"
 	"social-media-back/models/request"
 	"social-media-back/models/response"
@@ -46,16 +47,21 @@ func (s *AppService) UpdatePostComment(req *request.UpdateCommentRequest, userId
 }
 
 func (s *AppService) GetPostComments(postId, limit, page int) (*response.GetPostCommentsResponse, int, *response.DefaultResponse) {
-	comments, err := s.DBService.GetPostComments(postId, limit, page)
+	comments, totalPages, err := s.DBService.GetPostComments(postId, limit, page)
 	if err != nil {
-		return nil, 0, &response.DefaultResponse{
+		return nil, http.StatusInternalServerError, &response.DefaultResponse{
 			Message: err.Error(),
 			Detail:  "services.GetPostComments",
 		}
 	}
 
+	fmt.Println(comments)
+
 	return &response.GetPostCommentsResponse{
-		Comments: comments,
-		Success:  true,
+		Comments:   comments,
+		Page:       page,
+		Limit:      limit,
+		TotalPages: totalPages,
+		Success:    true,
 	}, http.StatusOK, nil
 }

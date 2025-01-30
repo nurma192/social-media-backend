@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"math"
 	"social-media-back/models"
 	"time"
 )
@@ -142,7 +141,7 @@ func (s *DBService) GetAllPostsWithAllInfo(limit, page, userId int) ([]*models.P
 	if err != nil {
 		return nil, -1, fmt.Errorf("Ошибка при получении количества постов: %w", err)
 	}
-	totalPages := int(math.Ceil(float64(totalPosts) / float64(limit)))
+	totalPages := (totalPosts + limit - 1) / limit
 
 	return posts, totalPages, nil
 }

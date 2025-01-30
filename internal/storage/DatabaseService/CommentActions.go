@@ -43,10 +43,10 @@ func (s *DBService) UpdatePostComment(commentId int, content string, userId int)
 	return nil
 }
 
-func (s *DBService) GetPostsCommentsCount(id int) (int, error) {
+func (s *DBService) GetPostsCommentsCount(postId int) (int, error) {
 	var commentsCount int
-	query := "SELECT COUNT(*) FROM comments WHERE id = $1"
-	err := s.DB.QueryRow(query, id).Scan(&commentsCount)
+	query := "SELECT COUNT(*) FROM comments WHERE post_id = $1"
+	err := s.DB.QueryRow(query, postId).Scan(&commentsCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -56,7 +56,7 @@ func (s *DBService) GetPostsCommentsCount(id int) (int, error) {
 	return commentsCount, nil
 }
 
-func (s *DBService) GetPostComments(postId, limit, page int) ([]models.CommentWithUser, error) {
+func (s *DBService) GetPostComments(postId, limit, page int) ([]models.CommentWithUser, int, error) {
 	offset := (page - 1) * limit
 	var comments []models.CommentWithUser
 
@@ -73,19 +73,19 @@ func (s *DBService) GetPostComments(postId, limit, page int) ([]models.CommentWi
 	rows, err := s.DB.Query(query, postId, limit, offset)
 	if err != nil {
 		log.Printf("Error executing query: %v", err)
-		return nil, err
+		return make([]models.CommentWithUser, 0), 0, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var comment models.CommentWithUser
-		comment.User = &models.UserMainInfo{} // Инициализация вложенной структуры
+		comment.User = &models.UserMainInfo{}
 
 		err := rows.Scan(&comment.Id, &comment.Content, &comment.User.Id, &comment.PostId, &comment.CreatedAt,
 			&comment.User.Id, &comment.User.Username, &comment.User.Firstname, &comment.User.Lastname, &comment.User.AvatarURL)
 		if err != nil {
 			log.Printf("Error scanning row: %v", err)
-			return nil, err
+			return make([]models.CommentWithUser, 0), 0, err
 		}
 
 		comments = append(comments, comment)
@@ -93,8 +93,18 @@ func (s *DBService) GetPostComments(postId, limit, page int) ([]models.CommentWi
 
 	if err := rows.Err(); err != nil {
 		log.Printf("Error processing rows: %v", err)
-		return nil, err
+		return make([]models.CommentWithUser, 0), 0, err
 	}
 
-	return comments, nil
+	var totalComments int
+	commentCountQuery := "SELECT COUNT(*) FROM comments WHERE post_id = $1"
+	err = s.DB.QueryRow(commentCountQuery, postId).Scan(&totalComments)
+
+	totalPage := (totalComments + limit - 1) / limit
+
+	if err != nil {
+		return make([]models.CommentWithUser, 0), 0, err
+	}
+
+	return comments, totalPage, nil
 }
