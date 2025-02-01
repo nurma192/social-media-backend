@@ -110,11 +110,11 @@ func (s *AppService) GetPostById(postId, userId int) (*response.Response, int) {
 	}, http.StatusOK
 }
 
-func (s *AppService) GetAllPosts(limit, page, userId int) (*response.PaginationResponse, int) {
+func (s *AppService) GetAllPosts(limit, page, userId int) (*response.Response, int) {
 	posts, totalPages, err := s.DBService.GetAllPostsWithAllInfo(limit, page, userId)
 
 	if err != nil {
-		return &response.PaginationResponse{
+		return &response.Response{
 			Error: err.Error(),
 		}, http.StatusInternalServerError
 	}
@@ -123,13 +123,16 @@ func (s *AppService) GetAllPosts(limit, page, userId int) (*response.PaginationR
 		Posts: posts,
 	}
 
-	res := &response.PaginationResponse{
+	paginationRes := &response.PaginationResponse{
 		Result:     getAllPostsRes,
 		Page:       page,
 		TotalPages: totalPages,
 		Limit:      limit,
 	}
-	return res, http.StatusOK
+
+	return &response.Response{
+		Result: paginationRes,
+	}, http.StatusOK
 }
 
 func (s *AppService) DeletePost(postID, userId int) (*response.Response, int) {

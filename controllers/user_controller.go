@@ -16,10 +16,7 @@ func (c *AppController) Current(ctx *gin.Context) {
 		})
 	}
 
-	res, code, errRes := c.AppService.CurrentUser(email)
-	if errRes != nil {
-		ctx.JSON(http.StatusInternalServerError, errRes)
-	}
+	res, code := c.AppService.CurrentUser(email)
 
 	ctx.IndentedJSON(code, res)
 }

@@ -18,12 +18,7 @@ func (c *AppController) LikePost(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.LikePost(req.PostId, userId)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
-
+	res, code := c.AppService.LikePost(req.PostId, userId)
 	ctx.IndentedJSON(code, res)
 }
 
@@ -38,11 +33,6 @@ func (c *AppController) UnlikePost(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.UnlikePost(req.PostId, userId)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
-
+	res, code := c.AppService.UnlikePost(req.PostId, userId)
 	ctx.IndentedJSON(code, res)
 }

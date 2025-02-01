@@ -7,61 +7,58 @@ import (
 	"social-media-back/models/response"
 )
 
-func (s *AppService) CreatePostComment(req *request.CreateCommentRequest, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) CreatePostComment(req *request.CreateCommentRequest, userId int) (*response.Response, int) {
 	err := s.DBService.CreatePostComment(req.Content, req.PostId, userId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: err.Error(),
-			Detail:  "services.comment_service.CreatePostComment(1)",
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
-	return nil, http.StatusCreated, &response.DefaultResponse{
-		Success: true,
-	}
+	return &response.Response{}, http.StatusCreated
 }
 
-func (s *AppService) DeletePostComment(req *request.DeleteCommentRequest, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) DeletePostComment(req *request.DeleteCommentRequest, userId int) (*response.Response, int) {
 	err := s.DBService.DeletePostComment(req.CommentId, userId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: err.Error(),
-			Detail:  "services.comment_service.DeletePostComment(1)",
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
-	return nil, http.StatusOK, &response.DefaultResponse{
-		Success: true,
-	}
+	return &response.Response{}, http.StatusOK
 }
 
-func (s *AppService) UpdatePostComment(req *request.UpdateCommentRequest, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) UpdatePostComment(req *request.UpdateCommentRequest, userId int) (*response.Response, int) {
 	err := s.DBService.UpdatePostComment(req.CommentId, req.Content, userId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: err.Error(),
-			Detail:  "services.comment_service.UpdatePostComment(1)",
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
-	return &response.DefaultResponse{
-		Success: true,
-	}, http.StatusOK, nil
+	return &response.Response{}, http.StatusOK
 }
 
-func (s *AppService) GetPostComments(postId, limit, page int) (*response.GetPostCommentsResponse, int, *response.DefaultResponse) {
+func (s *AppService) GetPostComments(postId, limit, page int) (*response.Response, int) {
 	comments, totalPages, err := s.DBService.GetPostComments(postId, limit, page)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: err.Error(),
-			Detail:  "services.GetPostComments",
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
 	fmt.Println(comments)
 
-	return &response.GetPostCommentsResponse{
-		Comments:   comments,
+	getPostCommentsRes := &response.GetPostCommentsResponse{
+		Comments: comments,
+	}
+
+	paginationRes := response.PaginationResponse{
+		Result:     getPostCommentsRes,
 		Page:       page,
 		Limit:      limit,
 		TotalPages: totalPages,
-		Success:    true,
-	}, http.StatusOK, nil
+	}
+
+	return &response.Response{
+		Result: paginationRes,
+	}, http.StatusOK
 }

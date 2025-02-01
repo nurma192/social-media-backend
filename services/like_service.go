@@ -5,28 +5,22 @@ import (
 	"social-media-back/models/response"
 )
 
-func (s *AppService) LikePost(postId, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) LikePost(postId, userId int) (*response.Response, int) {
 	err := s.DBService.AddLikePost(postId, userId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to add like post",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
-	return &response.DefaultResponse{
-		Success: true,
-	}, http.StatusCreated, nil
+	return &response.Response{}, http.StatusCreated
 }
 
-func (s *AppService) UnlikePost(postId, userId int) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) UnlikePost(postId, userId int) (*response.Response, int) {
 	err := s.DBService.DeleteLikePost(postId, userId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Failed to delete like post",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
-	return &response.DefaultResponse{
-		Success: true,
-	}, http.StatusCreated, nil
+	return &response.Response{}, http.StatusCreated
 }

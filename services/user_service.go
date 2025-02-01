@@ -5,17 +5,19 @@ import (
 	"social-media-back/models/response"
 )
 
-func (s *AppService) CurrentUser(email string) (*response.CurrentUserResponse, int, *response.DefaultResponse) {
+func (s *AppService) CurrentUser(email string) (*response.Response, int) {
 	user, err := s.DBService.GetUserByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  "Error when try to get user",
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
-	return &response.CurrentUserResponse{
-		User:    user,
-		Success: true,
-	}, http.StatusOK, nil
+	currentUserRes := &response.CurrentUserResponse{
+		User: user,
+	}
+
+	return &response.Response{
+		Result: currentUserRes,
+	}, http.StatusOK
 }

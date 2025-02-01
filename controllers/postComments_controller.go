@@ -19,12 +19,8 @@ func (c *AppController) CreatePostComment(ctx *gin.Context) {
 		})
 	}
 
-	res, code, errRes := c.AppService.CreatePostComment(&req, userId)
+	res, code := c.AppService.CreatePostComment(&req, userId)
 
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
 	ctx.IndentedJSON(code, res)
 
 }
@@ -38,12 +34,8 @@ func (c *AppController) DeletePostComment(ctx *gin.Context) {
 		})
 	}
 
-	res, code, errRes := c.AppService.DeletePostComment(&req, userId)
+	res, code := c.AppService.DeletePostComment(&req, userId)
 
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
 	ctx.IndentedJSON(code, res)
 
 }
@@ -59,12 +51,8 @@ func (c *AppController) UpdatePostComment(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.UpdatePostComment(&req, userId)
+	res, code := c.AppService.UpdatePostComment(&req, userId)
 
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
 	ctx.IndentedJSON(code, res)
 
 }
@@ -92,11 +80,7 @@ func (c *AppController) GetPostsComments(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.GetPostComments(postId, limit, page)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code := c.AppService.GetPostComments(postId, limit, page)
 
 	ctx.IndentedJSON(code, res)
 }
