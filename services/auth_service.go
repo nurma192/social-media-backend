@@ -13,231 +13,206 @@ import (
 	"time"
 )
 
-func (s *AppService) Login(email, password string) (*response.LoginResponse, int, *response.DefaultResponse) {
+func (s *AppService) Login(email, password string) (*response.Response, int, string) {
 	user, err := s.DBService.GetUserByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError, ""
 	}
 
 	if user == nil {
-		return nil, http.StatusBadRequest, &response.DefaultResponse{
-			Message: "Incorrec Email or Password",
-			Detail:  "user == nil",
-		}
+		return &response.Response{
+			Error: "Incorrect Email or Password",
+		}, http.StatusBadRequest, ""
 	}
 
 	if !hashing.CheckPassword(user.Password, password) {
-		return nil, http.StatusBadRequest, &response.DefaultResponse{
-			Message: "Incorrect Email or Password",
-			Detail:  "CheckPassword",
-		}
+		return &response.Response{
+			Error: "Incorrect Email or Password",
+		}, http.StatusBadRequest, ""
 	}
 
 	token, err := s.JWTService.GenerateAccessToken(email, user.Id)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error when try to generate access token",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: "Server Error when try to generate access token",
+		}, http.StatusInternalServerError, ""
 	}
 
 	refreshToken, err := s.JWTService.GenerateRefreshToken(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error, when try to generate refresh token",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError, ""
 	}
 
 	fmt.Println("login refreshToken", refreshToken)
 
-	res := &response.LoginResponse{
-		RefreshToken: refreshToken,
-		Token:        token,
-		Success:      true,
+	loginResponse := &response.LoginResponse{
+		Token: token,
 	}
-	return res, http.StatusOK, nil
+	return &response.Response{
+		Result:  loginResponse,
+		Message: "Login Success",
+	}, http.StatusOK, refreshToken
 
 }
 
-func (s *AppService) Register(request request.RegisterRequest) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) Register(request request.RegisterRequest) (*response.Response, int) {
 	isExistByEmail, err := s.DBService.IsUserExistByEmail(request.Email)
 	isExistByUsername, err := s.DBService.IsUserExistByUsername(request.Username)
 
 	if isExistByEmail {
-		return nil, http.StatusBadRequest, &response.DefaultResponse{
-			Message: "User With this Email Already Exist",
-		}
+		return &response.Response{
+			Error: "User With this Email Already Exist",
+		}, http.StatusBadRequest
 	}
 	if isExistByUsername {
-		return nil, http.StatusBadRequest, &response.DefaultResponse{
-			Message: "User With this Username Already Exist",
-		}
+		return &response.Response{
+			Error: "User With this Username Already Exist",
+		}, http.StatusBadRequest
 	}
 
 	err = s.RedisService.SaveRegisteredUserData(&request)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 
-	_, code, errRes := s.SendVerifyCode(request.Email)
-	if errRes != nil {
-		return nil, code, errRes
+	res, code := s.SendVerifyCode(request.Email)
+	fmt.Println(res)
+	if res.Error != "" {
+		return res, code
 	}
 
-	res := &response.DefaultResponse{
+	return &response.Response{
 		Message: "Code sent to email, verify your account",
-		Success: true,
-	}
-
-	return res, http.StatusOK, nil
+	}, http.StatusOK
 }
 
-func (s *AppService) SendVerifyCode(email string) (*response.DefaultResponse, int, *response.DefaultResponse) {
+func (s *AppService) SendVerifyCode(email string) (*response.Response, int) {
 	exist, err := s.DBService.IsUserExistByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError
 	}
 	if exist {
-		return nil, http.StatusBadRequest, &response.DefaultResponse{
-			Message: "User With this Email Already Exist",
-		}
+		return &response.Response{
+			Error: "User With this Email Already Exist",
+		}, http.StatusBadRequest
 	}
 	userData, err := s.RedisService.GetRegisteredUserByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  "Cant check the users register ticket",
-		}
+		return &response.Response{
+			Error: "Cant check the users register ticket" + err.Error(),
+		}, http.StatusInternalServerError
 	}
 	if userData == nil {
-		return nil, http.StatusBadRequest, &response.DefaultResponse{
-			Message: "Register ticket not found",
-			Detail:  "Error users register ticket",
-		}
+		return &response.Response{
+			Error: "Register ticket not found",
+		}, http.StatusBadRequest
 	}
 	//todo Save code logic
 	codeExist, err := s.RedisService.CheckVerificationCode(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to check verification code: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to check verification code: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 	if codeExist {
-		return nil, http.StatusConflict, &response.DefaultResponse{
-			Message: "User verify code already sent",
-			Detail:  fmt.Sprintf("User verify code already sent: %s", email),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("User verify code already sent: %s", email),
+		}, http.StatusConflict
 	}
 
 	rand.Seed(uint64(time.Now().UnixNano()))
 	code := fmt.Sprintf("%04d", rand.Intn(10000))
 	err = s.RedisService.SetVerificationCode(email, code)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error, failed to save verification code",
-			Detail:  fmt.Sprintf("failed to save verification code: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to save verification code: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 	//todo Send code to email logic
 	err = s.EmailService.SendMessage(email, "Your verification code", "Your verification code: "+code+"\n Verify Your account within 10 minutes, Registration tickets time out after 10 minutes")
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error, failed to send verification code",
-			Detail:  fmt.Sprintf("failed to send verification code: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to send verification code: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 
-	res := &response.DefaultResponse{
-		Success: true,
+	return &response.Response{
 		Message: "Verify code successfully sent to your email",
-	}
-	return res, http.StatusOK, nil
+	}, http.StatusOK
 }
 
-func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountResponse, int, *response.DefaultResponse) {
+func (s *AppService) VerifyAccount(email, code string) (*response.Response, int) {
 	storedCode, err := s.RedisService.GetVerificationCode(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("Error when try to get verification code from redisStorage: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("Error when try to get verification code from redisStorage: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 
 	if storedCode == "" {
-		return nil, http.StatusNotFound, &response.DefaultResponse{
-			Message: "User not found",
-			Detail:  fmt.Sprintf("User %s not found ", email),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("User %s not found ", email),
+		}, http.StatusNotFound
 	}
 
 	if storedCode != code {
-		return nil, http.StatusForbidden, &response.DefaultResponse{
-			Message: "Wrong verification code",
-			Detail:  fmt.Sprintf("wrong verification code"),
-		}
+		return &response.Response{
+			Error: "wrong verification code",
+		}, http.StatusForbidden
 	}
 
 	userData, err := s.RedisService.GetRegisteredUserByEmail(email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  "Error when try to get Registered User ticket " + err.Error(),
-		}
+		return &response.Response{
+			Error: "Error when try to get Registered User ticket " + err.Error(),
+		}, http.StatusInternalServerError
 	}
 
 	if userData == nil {
-		return nil, http.StatusNotFound, &response.DefaultResponse{
-			Message: "Registration tickets time is out",
-			Detail:  fmt.Sprintf("Registration tickets time is out"),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("Registration tickets time is out"),
+		}, http.StatusNotFound
 	}
 
 	hashedPassword, err := hashing.HashPassword(userData.Password)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to hashing password: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to hashing password: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 
 	icon := jdenticon.New(userData.Firstname)
 	svg, err := icon.SVG()
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to generate svg: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to generate svg: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 	avatarName := fmt.Sprintf("%s_%s.svg", userData.Firstname, time.Now().Format("2006_01_02_15_04_05"))
 	avatarPath := "uploads/avatars/" + avatarName
 	file, err := os.Create(avatarPath)
 
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to create avatar file: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to create avatar file: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 	defer file.Close()
 
 	svgString := string(svg)
 	_, err = file.WriteString(svgString)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to write avatar file: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to write avatar file: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 
 	avatarURL := avatarPath
@@ -255,10 +230,9 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 	).Scan(&userId)
 
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to insert user into DB: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to insert user into DB: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 	createdUser := &models.User{
 		Id:        userId,
@@ -272,52 +246,50 @@ func (s *AppService) VerifyAccount(email, code string) (*response.VerifyAccountR
 
 	_, err = s.DBService.DB.Exec("UPDATE users SET verified = true WHERE email = $1", email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to update verification of account: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to update verification of account: %w", err.Error()),
+		}, http.StatusInternalServerError
 	}
 
 	_ = s.RedisService.DeleteVerificationCode(email)
 	_ = s.RedisService.DeleteRegisteredUserByEmail(email)
 
-	res := &response.VerifyAccountResponse{
-		User:    createdUser,
-		Success: true,
-		Message: "Your account has been verified successfully!",
+	verifyAccountRes := response.VerifyAccountResponse{
+		User: createdUser,
 	}
-	return res, http.StatusCreated, nil
+
+	return &response.Response{
+		Result:  verifyAccountRes,
+		Message: "Your account has been verified successfully!",
+	}, http.StatusCreated
 }
 
-func (s *AppService) RefreshToken(refreshToken string) (*response.LoginResponse, int, *response.DefaultResponse) {
+func (s *AppService) RefreshToken(refreshToken string) (*response.Response, int, string) {
 	claims, err := s.JWTService.ValidateToken(refreshToken)
 	fmt.Println("refreshToken:", refreshToken)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to validate token: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to validate token: %w", err.Error()),
+		}, http.StatusInternalServerError, ""
 	}
 
 	token, err := s.JWTService.GenerateAccessToken(claims.Email, claims.UserId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error",
-			Detail:  fmt.Sprintf("failed to generate access token: %w", err.Error()),
-		}
+		return &response.Response{
+			Error: fmt.Sprintf("failed to generate access token: %w", err.Error()),
+		}, http.StatusInternalServerError, ""
 	}
 	newRefreshToken, err := s.JWTService.GenerateRefreshToken(claims.Email)
 	if err != nil {
-		return nil, http.StatusInternalServerError, &response.DefaultResponse{
-			Message: "Server Error, when try to generate refresh token",
-			Detail:  err.Error(),
-		}
+		return &response.Response{
+			Error: err.Error(),
+		}, http.StatusInternalServerError, ""
 	}
 
-	res := &response.LoginResponse{
-		RefreshToken: newRefreshToken,
-		Token:        token,
-		Success:      true,
+	loginRes := &response.LoginResponse{
+		Token: token,
 	}
-	return res, http.StatusOK, nil
+	return &response.Response{
+		Result: loginRes,
+	}, http.StatusOK, newRefreshToken
 }

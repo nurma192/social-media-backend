@@ -17,17 +17,10 @@ func (c *AppController) Login(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.Login(req.Email, req.Password)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code, refreshToken := c.AppService.Login(req.Email, req.Password)
 
-	ctx.SetCookie("RefreshToken", res.RefreshToken, 3600*24*7, "", "", false, true)
-	ctx.IndentedJSON(http.StatusOK, gin.H{
-		"success": true,
-		"token":   res.Token,
-	})
+	ctx.SetCookie("RefreshToken", refreshToken, 3600*24*7, "", "", false, true)
+	ctx.IndentedJSON(code, res)
 }
 
 func (c *AppController) Register(ctx *gin.Context) {
@@ -41,13 +34,9 @@ func (c *AppController) Register(ctx *gin.Context) {
 		return
 	}
 
-	res, status, errRes := c.AppService.Register(req)
-	if errRes != nil {
-		ctx.IndentedJSON(status, errRes)
-		return
-	}
+	res, status := c.AppService.Register(req)
 
-	ctx.IndentedJSON(http.StatusCreated, res)
+	ctx.IndentedJSON(status, res)
 }
 
 func (c *AppController) SendVerifyCode(ctx *gin.Context) {
@@ -61,11 +50,7 @@ func (c *AppController) SendVerifyCode(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.SendVerifyCode(req.Email)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code := c.AppService.SendVerifyCode(req.Email)
 
 	ctx.IndentedJSON(code, res)
 }
@@ -80,11 +65,7 @@ func (c *AppController) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.VerifyAccount(req.Email, req.Code)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code := c.AppService.VerifyAccount(req.Email, req.Code)
 
 	ctx.IndentedJSON(code, res)
 }
@@ -99,16 +80,9 @@ func (c *AppController) RefreshToken(ctx *gin.Context) {
 		return
 	}
 
-	res, code, errRes := c.AppService.RefreshToken(refreshToken)
-	if errRes != nil {
-		ctx.IndentedJSON(code, errRes)
-		return
-	}
+	res, code, newRefreshToken := c.AppService.RefreshToken(refreshToken)
 
-	ctx.SetCookie("RefreshToken", res.RefreshToken, 3600*24*7, "", "", false, true)
-	ctx.IndentedJSON(http.StatusOK, gin.H{
-		"success": true,
-		"token":   res.Token,
-	})
+	ctx.SetCookie("RefreshToken", newRefreshToken, 3600*24*7, "", "", false, true)
+	ctx.IndentedJSON(code, res)
 
 }
