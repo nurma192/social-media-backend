@@ -63,14 +63,18 @@ func (s *AppService) CreatePost(post request.CreatePostRequest, userId int) (*re
 		})
 	}
 
-	return &response.Response{
-		Result: &models.Post{
+	createPostRes := response.CreatePostResponse{
+		Post: &models.Post{
 			Id:          postID,
 			ContentText: post.ContentText,
 			Images:      images,
 			UserId:      userId,
 			CreatedAt:   time.Now(),
 		},
+	}
+
+	return &response.Response{
+		Result:  createPostRes,
 		Message: "Post created",
 	}, http.StatusCreated
 }
@@ -97,8 +101,12 @@ func (s *AppService) GetPostById(postId, userId int) (*response.Response, int) {
 	}
 	postWithAllInfo.LikedByUser = isUserLikedPost
 
+	getPostByIdRes := response.GetPostByIdResponse{
+		Post: postWithAllInfo,
+	}
+
 	return &response.Response{
-		Result: postWithAllInfo,
+		Result: getPostByIdRes,
 	}, http.StatusOK
 }
 
@@ -111,8 +119,12 @@ func (s *AppService) GetAllPosts(limit, page, userId int) (*response.PaginationR
 		}, http.StatusInternalServerError
 	}
 
+	getAllPostsRes := response.GetAllPostsResponse{
+		Posts: posts,
+	}
+
 	res := &response.PaginationResponse{
-		Result:     posts,
+		Result:     getAllPostsRes,
 		Page:       page,
 		TotalPages: totalPages,
 		Limit:      limit,
@@ -237,8 +249,12 @@ func (s *AppService) UpdatePost(postId, userId int, req *request.UpdatePostReque
 
 	post, err = s.DBService.GetPostQuery(postId)
 
+	updatePostRes := response.UpdatePostResponse{
+		Post: post,
+	}
+
 	return &response.Response{
+		Result:  updatePostRes,
 		Message: "Post updated successfully",
-		Result:  post,
 	}, http.StatusOK
 }
