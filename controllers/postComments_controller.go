@@ -13,10 +13,10 @@ func (c *AppController) CreatePostComment(ctx *gin.Context) {
 	var req request.CreateCommentRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
-			Message: "invalid request body",
-			Detail:  err.Error(),
+		ctx.IndentedJSON(http.StatusBadRequest, response.Response{
+			Error: "invalid request body, " + err.Error(),
 		})
+		return
 	}
 
 	res, code := c.AppService.CreatePostComment(&req, userId)
@@ -28,10 +28,10 @@ func (c *AppController) DeletePostComment(ctx *gin.Context) {
 	userId := ctx.MustGet("userId").(int)
 	var req request.DeleteCommentRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
-			Message: "invalid request body",
-			Detail:  err.Error(),
+		ctx.IndentedJSON(http.StatusBadRequest, response.Response{
+			Error: "invalid request body, " + err.Error(),
 		})
+		return
 	}
 
 	res, code := c.AppService.DeletePostComment(&req, userId)
@@ -44,9 +44,8 @@ func (c *AppController) UpdatePostComment(ctx *gin.Context) {
 
 	var req request.UpdateCommentRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
-			Message: "invalid request body",
-			Detail:  err.Error(),
+		ctx.IndentedJSON(http.StatusBadRequest, response.Response{
+			Error: "invalid request body, " + err.Error(),
 		})
 		return
 	}
@@ -60,9 +59,8 @@ func (c *AppController) GetPostsComments(ctx *gin.Context) {
 	id := ctx.Param("id")
 	postId, err := strconv.Atoi(id)
 	if err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, response.DefaultResponse{
-			Message: "Invalid post id",
-			Detail:  err.Error(),
+		ctx.IndentedJSON(http.StatusBadRequest, response.Response{
+			Error: "Invalid post id " + err.Error(),
 		})
 		return
 	}
