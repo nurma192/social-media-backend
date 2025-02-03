@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type Comment struct {
 	Id        int    `json:"id"`
 	PostId    int    `json:"post_id"`
@@ -13,5 +15,5 @@ type CommentWithUser struct {
 	PostId    int           `json:"post_id"`
 	User      *UserMainInfo `json:"user"`
 	Content   string        `json:"content"`
-	CreatedAt string        `json:"created_at"`
+	CreatedAt time.Time     `json:"created_at"`
 }

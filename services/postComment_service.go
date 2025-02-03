@@ -3,18 +3,32 @@ package services
 import (
 	"fmt"
 	"net/http"
+	"social-media-back/models"
 	"social-media-back/models/request"
 	"social-media-back/models/response"
+	"time"
 )
 
 func (s *AppService) CreatePostComment(req *request.CreateCommentRequest, userId int) (*response.Response, int) {
-	err := s.DBService.CreatePostComment(req.Content, req.PostId, userId)
+	newCommentId, err := s.DBService.CreatePostComment(req.Content, req.PostId, userId)
 	if err != nil {
 		return &response.Response{
 			Error: err.Error(),
 		}, http.StatusInternalServerError
 	}
-	return &response.Response{}, http.StatusCreated
+
+	createPostCommentRes := response.CreatePostCommentResponse{
+		Comment: models.CommentWithUser{
+			Id:        newCommentId,
+			PostId:    req.PostId,
+			Content:   req.Content,
+			CreatedAt: time.Now(),
+		},
+	}
+
+	return &response.Response{
+		Result: createPostCommentRes,
+	}, http.StatusCreated
 }
 
 func (s *AppService) DeletePostComment(req *request.DeleteCommentRequest, userId int) (*response.Response, int) {
