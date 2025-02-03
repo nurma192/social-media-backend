@@ -8,13 +8,14 @@ import (
 	"social-media-back/models"
 )
 
-func (s *DBService) CreatePostComment(content string, postId, userId int) error {
-	query := "INSERT INTO comments (content, user_id, post_id) VALUES ($1, $2, $3)"
-	_, err := s.DB.Exec(query, content, userId, postId)
+func (s *DBService) CreatePostComment(content string, postId, userId int) (int, error) {
+	var id int
+	query := "INSERT INTO comments (content, user_id, post_id) VALUES ($1, $2, $3) RETURNING id"
+	err := s.DB.QueryRow(query, content, userId, postId).Scan(&id)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return id, nil
 }
 func (s *DBService) DeletePostComment(commentId, userId int) error {
 	query := "DELETE FROM comments WHERE id = $1 AND user_id = $2"
@@ -68,6 +69,7 @@ func (s *DBService) GetPostComments(postId, limit, page int) ([]models.CommentWi
         JOIN users u 
         ON c.user_id = u.id 
         WHERE c.post_id = $1 
+        ORDER BY c.id DESC
         LIMIT $2 OFFSET $3
     `
 	rows, err := s.DB.Query(query, postId, limit, offset)
