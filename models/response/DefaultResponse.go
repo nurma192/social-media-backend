@@ -17,5 +17,4 @@ type PaginationResponse struct {
 	TotalPages int         `json:"totalPages,omitempty"`
 	Limit      int         `json:"limit,omitempty"`
 	Result     interface{} `json:"result,omitempty"`
-	Error      string      `json:"error,omitempty"`
 }

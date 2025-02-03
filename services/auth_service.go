@@ -1,11 +1,11 @@
 package services
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stdatiks/jdenticon-go"
 	"golang.org/x/exp/rand"
 	"net/http"
-	"os"
 	"social-media-back/lib/hashing"
 	"social-media-back/models"
 	"social-media-back/models/request"
@@ -197,25 +197,16 @@ func (s *AppService) VerifyAccount(email, code string) (*response.Response, int)
 		}, http.StatusInternalServerError
 	}
 	avatarName := fmt.Sprintf("%s_%s.svg", userData.Firstname, time.Now().Format("2006_01_02_15_04_05"))
-	avatarPath := "uploads/avatars/" + avatarName
-	file, err := os.Create(avatarPath)
 
+	svgReader := bytes.NewReader([]byte(svg))
+	contentType := "image/svg+xml"
+
+	avatarURL, err := s.AWSService.UploadFileWithReader(svgReader, avatarName, contentType)
 	if err != nil {
 		return &response.Response{
-			Error: fmt.Sprintf("failed to create avatar file: %w", err.Error()),
+			Error: fmt.Sprintf("failed to upload avatar to S3: %v", err),
 		}, http.StatusInternalServerError
 	}
-	defer file.Close()
-
-	svgString := string(svg)
-	_, err = file.WriteString(svgString)
-	if err != nil {
-		return &response.Response{
-			Error: fmt.Sprintf("failed to write avatar file: %w", err.Error()),
-		}, http.StatusInternalServerError
-	}
-
-	avatarURL := avatarPath
 
 	query := `INSERT INTO users (email, username, password, firstname, lastname, avatar_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 	var userId int
