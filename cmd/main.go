@@ -29,6 +29,7 @@ func main() {
 
 	// setup router
 	router := routes.SetupRoutes(cfg, db, redisClient)
+
 	if err := router.Run(":" + cfg.ServerPort); err != nil {
 		log.Error("Error when starting the server", "Error", err)
 		return
